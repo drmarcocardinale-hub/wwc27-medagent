@@ -1,0 +1,16 @@
+{
+  "title": "WWC27-MedAgent: a living paper agent for sports medicine and science preparation for the FIFA Women's World Cup Brazil 2027",
+  "upload_type": "software",
+  "description": "Model Context Protocol (MCP) server that turns the Current Opinion 'Sports Medicine and Science Considerations to Maximise Preparation for the FIFA Women's World Cup Brazil 2027: From Static Evidence to a Living Agent' (submitted to Sports Medicine) into validated tools, machine-readable resources and prompts. The release includes the curated evidence table, host-city data, a screening and monitoring matrix, automated tests and a 50-item validation benchmark. Decision support only; not a substitute for clinical judgement.",
+  "creators": [
+    {"name": "Cardinale, Marco", "affiliation": "Aspetar Orthopaedic and Sports Medicine Hospital; Institute of Sport, Exercise and Health, University College London"},
+    {"name": "Geertsema, Celeste", "affiliation": "Aspetar Orthopaedic and Sports Medicine Hospital"}
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": ["sports medicine", "women's football", "FIFA Women's World Cup", "Brazil 2027", "heat", "injury and illness surveillance", "Model Context Protocol", "AI agent", "living evidence"],
+  "related_identifiers": [
+    {"identifier": "10.1038/s41586-026-11044-y", "relation": "isDerivedFrom", "scheme": "doi"}
+  ],
+  "version": "0.1.0"
+}

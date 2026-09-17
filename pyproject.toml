@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wwc27-medagent"
+version = "0.1.0"
+description = "Paper agent (MCP server) for medical screening and monitoring at the FIFA Women's World Cup Brazil 2027"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["mcp>=1.2"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+bench = ["anthropic>=0.40"]
+
+[project.scripts]
+wwc27-medagent = "wwc27_medagent.server:main"
+
+[tool.setuptools.packages.find]
+include = ["wwc27_medagent*"]
+
+[tool.setuptools.package-data]
+"wwc27_medagent.data" = ["*.json", "*.md"]

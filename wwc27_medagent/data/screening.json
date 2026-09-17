@@ -1,0 +1,93 @@
+{
+  "_meta": {
+    "note": "Phase x domain matrix underpinning Table 2 of the manuscript. Items are prompts for clinical judgement, not mandatory protocols.",
+    "phases": {
+      "pre_tournament": "6-12 months before (club-country data sharing; baseline assessment)",
+      "preparation_camp": "about 4-0 weeks before (acclimatisation, final checks)",
+      "in_tournament": "24 June - 25 July 2027 (daily monitoring)",
+      "post_tournament": "0-4 weeks after (handover, recovery, surveillance reporting)"
+    }
+  },
+  "domains": {
+    "cardiovascular": {
+      "label": "Cardiovascular",
+      "pre_tournament": ["Health questionnaire, examination and 12-lead ECG with sex-appropriate interpretation; echocardiography where indicated", "Confirm emergency action plan and AED access for training venues"],
+      "preparation_camp": ["Review outstanding cardiac investigations; confirm eligibility"],
+      "in_tournament": ["Post-viral illness cardiac red flags before return to play"],
+      "post_tournament": ["Share findings with club medical team (with consent)"],
+      "refs": ["Yamagata2026"]
+    },
+    "musculoskeletal": {
+      "label": "Musculoskeletal (ACL, hamstring, ankle)",
+      "pre_tournament": ["Injury history and ACL/hamstring risk profile", "Audit neuromuscular training adherence (>=10 min, 2x/week)", "Strength and hop/change-of-direction testing"],
+      "preparation_camp": ["Maintain neuromuscular programme; progressive exposure to match-intensity running"],
+      "in_tournament": ["Daily medical screening; minutes and high-intensity load; on-field assessment readiness"],
+      "post_tournament": ["Report time-loss injuries using football consensus definitions; handover"],
+      "refs": ["Bullock2025", "Crossley2025", "Hallen2024", "Lu2026", "Walden2023"]
+    },
+    "energy_iron": {
+      "label": "Energy availability and iron status",
+      "pre_tournament": ["REDs screening (IOC REDs CAT2) and dietary assessment", "Ferritin, haemoglobin and iron indices; plan supplementation early"],
+      "preparation_camp": ["Individual fuelling plans for heat, travel and congested fixtures"],
+      "in_tournament": ["Body-mass trends; time any blood sampling away from recent exercise (hepcidin peaks 3-6 h)"],
+      "post_tournament": ["Repeat iron indices if deficient; refer as needed"],
+      "refs": ["Mountjoy2023", "SmithRyan2026", "Fensham2023"]
+    },
+    "menstrual_female_health": {
+      "label": "Menstrual cycle and female health domains",
+      "pre_tournament": ["Menstrual history, contraception use, symptoms; breast and pelvic-floor health (female health domains)", "Agree consent and data-governance for cycle tracking"],
+      "preparation_camp": ["Individual symptom-management plans; product and facility access"],
+      "in_tournament": ["Optional cycle-phase and symptom logging; interpret load and fatigue in context"],
+      "post_tournament": ["Record female health problems using the IOC supplement taxonomy"],
+      "refs": ["Moore2023", "Scott2024", "Barlow2024"]
+    },
+    "heat_environment": {
+      "label": "Heat, cold and environment",
+      "pre_tournament": ["Map fixtures and base camp to venue climate (Table 1); identify heat-exposed players", "Heat-tolerance history, including previous exertional heat illness"],
+      "preparation_camp": ["Heat acclimation 1-2 weeks if north-east fixtures; cold/wet routines for southern venues", "Individual cooling plan (ice slurry, ice vest)"],
+      "in_tournament": ["On-site WBGT; hydration and body-mass checks; account for higher luteal-phase core temperature", "Exertional heat stroke readiness (cold-water immersion)"],
+      "post_tournament": ["Record heat-related illness"],
+      "refs": ["Racinais2015", "Racinais2022", "Esh2026", "Convit2024", "Giersch2020", "Nassis2015"]
+    },
+    "infection_vaccination": {
+      "label": "Infection and vaccination",
+      "pre_tournament": ["Vaccination review: yellow fever (state-dependent), influenza, measles, COVID-19; consider dengue vaccination per national guidance", "Travel-health consultation"],
+      "preparation_camp": ["Hand and respiratory hygiene; food and water safety; mosquito-bite prevention"],
+      "in_tournament": ["Daily illness symptom check; isolation protocol; outbreak bulletins for host cities"],
+      "post_tournament": ["Screen for febrile illness after return (arboviral incubation)"],
+      "refs": ["CDC2026", "GurgelGoncalves2024", "Scachetti2025", "Serner2025", "Lu2026"]
+    },
+    "mental_health": {
+      "label": "Mental health",
+      "pre_tournament": ["Validated mental-health screening; referral pathways"],
+      "preparation_camp": ["Agree support access in the tournament environment"],
+      "in_tournament": ["Brief check-ins; attention to selection, media and social-media stressors"],
+      "post_tournament": ["Post-tournament follow-up, including non-selected players"],
+      "refs": ["Reardon2026", "Lu2026"]
+    },
+    "concussion": {
+      "label": "Concussion",
+      "pre_tournament": ["Baseline concussion assessment; education for players and coaches"],
+      "preparation_camp": ["Rehearse on-field recognition and removal; clarify medical authority"],
+      "in_tournament": ["Apply protocol free from player/coach pressure; video review where available"],
+      "post_tournament": ["Graded return-to-play handover"],
+      "refs": ["Wilke2024"]
+    },
+    "travel_sleep": {
+      "label": "Travel, jet lag and sleep",
+      "pre_tournament": ["Plan arrival timing (European teams cross 4-5 time zones; Asia-Pacific teams many more)"],
+      "preparation_camp": ["Light, sleep and meal-timing strategies; arrive early enough to adapt"],
+      "in_tournament": ["Minimise domestic travel fatigue (distances up to ~3200 km); sleep monitoring"],
+      "post_tournament": ["Return-travel plan and recovery"],
+      "refs": ["JanseVanRensburg2021", "Esh2026"]
+    },
+    "medication": {
+      "label": "Medication and anti-doping",
+      "pre_tournament": ["Medication reconciliation; therapeutic use exemptions"],
+      "preparation_camp": ["Rationalise NSAID and analgesic use"],
+      "in_tournament": ["Log all medication; avoid routine pre-match NSAIDs"],
+      "post_tournament": ["Review medication use"],
+      "refs": ["Tscholl2015"]
+    }
+  }
+}

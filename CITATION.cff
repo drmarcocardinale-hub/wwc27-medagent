@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the article and this software release."
+title: "WWC27-MedAgent: a living paper agent for sports medicine and science preparation for the FIFA Women's World Cup Brazil 2027"
+version: 0.1.0
+date-released: 2026-09-17
+license: MIT
+repository-code: "https://github.com/OWNER/wwc27-medagent"   # replace OWNER after creating the repository
+type: software
+authors:
+  - family-names: Cardinale
+    given-names: Marco
+    affiliation: "Aspetar Orthopaedic and Sports Medicine Hospital; Institute of Sport, Exercise and Health, University College London"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+  - family-names: Geertsema
+    given-names: Celeste
+    affiliation: "Aspetar Orthopaedic and Sports Medicine Hospital"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+keywords:
+  - sports medicine
+  - women's football
+  - FIFA Women's World Cup
+  - heat
+  - injury and illness surveillance
+  - Model Context Protocol
+  - AI agent
+  - living evidence
+preferred-citation:
+  type: article
+  title: "Sports Medicine and Science Considerations to Maximise Preparation for the FIFA Women's World Cup Brazil 2027: From Static Evidence to a Living Agent"
+  authors:
+    - family-names: Cardinale
+      given-names: Marco
+    - family-names: Geertsema
+      given-names: Celeste
+  journal: "Sports Medicine"
+  year: 2027
+  status: submitted

@@ -1,0 +1,27 @@
+{
+  "_note": "Held-out retrieval check, written after the retrieval rules were revised and run once without further tuning (2026-09-17). in_scope: the expected evidence id should be in the top 3. out_of_scope: retrieval should return no hits.",
+  "in_scope": [
+    {"q": "How common were breathing-related illnesses among players at Qatar 2022?", "expect": "E06"},
+    {"q": "Is there evidence that cooling vests help women exercising in the heat?", "expect": "E22"},
+    {"q": "How much does neuromuscular training cut knee ligament injuries?", "expect": "E25"},
+    {"q": "What did cardiac screening find in female footballers?", "expect": "E26"},
+    {"q": "Did coaches pressure doctors over concussion decisions?", "expect": "E18"},
+    {"q": "Are dengue outbreaks a concern in Brazil?", "expect": "E28"},
+    {"q": "Does the menstrual cycle affect injury risk?", "expect": "E15"},
+    {"q": "How are painkillers and anti-inflammatories used at World Cups?", "expect": "E20"},
+    {"q": "How much running did teams do at the 2023 Women's World Cup?", "expect": "E19"},
+    {"q": "When should blood tests for iron be taken relative to training?", "expect": "E27"}
+  ],
+  "out_of_scope": [
+    "What was the injury rate at the 2011 Women's World Cup?",
+    "How many yellow cards were shown at the 2023 Women's World Cup?",
+    "What is the best pre-match meal for a goalkeeper?",
+    "Which airline should we use between São Paulo and Recife?",
+    "What is the population of Salvador?",
+    "Which altitude training camp is best in Colombia?",
+    "What was the attendance at the 2019 final?",
+    "Who is the head coach of Brazil's women's team?",
+    "What visa do we need to enter Brazil?",
+    "What was the illness incidence at the 2018 men's World Cup?"
+  ]
+}

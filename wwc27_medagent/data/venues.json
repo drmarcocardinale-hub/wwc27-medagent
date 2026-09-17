@@ -1,0 +1,225 @@
+{
+  "_meta": {
+    "version": "0.1.0",
+    "last_updated": "2026-09-17",
+    "climate_source": "Instituto Nacional de Meteorologia (INMET) climate normals as tabulated on the English Wikipedia city pages (accessed 2026-09-17). Rio de Janeiro uses 1981-2010 normals (Saude station); all other cities use 1991-2020.",
+    "schedule_source": "FIFA media release 20 Aug 2026 (https://inside.fifa.com/organisation/media-releases/womens-world-cup-2027-brazil-maracana-match-schedule-unveiled); Wikipedia 2027 FIFA Women's World Cup (accessed 2026-09-17).",
+    "caveat": "Climate normals describe typical, not extreme, conditions. Coordinates are approximate city/stadium locations used only for great-circle distances.",
+    "yellow_fever_source": "CDC Yellow Book 2026, Brazil chapter (https://www.cdc.gov/yellow-book/hcp/americas-caribbean/brazil.html), accessed 2026-09-17. State-level guidance; check current map before travel."
+  },
+  "tournament": {
+    "name": "FIFA Women's World Cup Brazil 2027",
+    "start": "2027-06-24",
+    "group_stage_end": "2027-07-08",
+    "round_of_16": "2027-07-10/2027-07-13",
+    "quarter_finals": "2027-07-16/2027-07-17",
+    "semi_finals": "2027-07-20/2027-07-21",
+    "third_place": "2027-07-24 (Sao Paulo)",
+    "final": "2027-07-25 (Rio de Janeiro, Maracana)",
+    "teams": 32,
+    "matches": 64,
+    "time_zone": "UTC-03:00 (all host cities)"
+  },
+  "venues": {
+    "rio_de_janeiro": {
+      "city": "Rio de Janeiro",
+      "stadium": "Estadio do Maracana",
+      "capacity": 73139,
+      "lat": -22.912,
+      "lon": -43.23,
+      "elevation_m": 11,
+      "normals": "1981-2010",
+      "climate_group": "warm-humid coastal",
+      "june": {
+        "tmax": 26.7,
+        "tmean": 23.0,
+        "tmin": 19.3,
+        "rh": 79.0,
+        "precip_mm": 42.7
+      },
+      "july": {
+        "tmax": 26.4,
+        "tmean": 22.6,
+        "tmin": 18.7,
+        "rh": 77.0,
+        "precip_mm": 41.9
+      },
+      "yellow_fever_vaccine_cdc_2026": "recommended"
+    },
+    "sao_paulo": {
+      "city": "Sao Paulo",
+      "stadium": "Neo Quimica Arena",
+      "capacity": 48905,
+      "lat": -23.545,
+      "lon": -46.474,
+      "elevation_m": 785,
+      "normals": "1991-2020",
+      "climate_group": "cool",
+      "june": {
+        "tmax": 22.9,
+        "tmean": 17.0,
+        "tmin": 13.5,
+        "rh": 73.5,
+        "precip_mm": 59.7
+      },
+      "july": {
+        "tmax": 22.9,
+        "tmean": 16.3,
+        "tmin": 12.8,
+        "rh": 70.8,
+        "precip_mm": 48.4
+      },
+      "yellow_fever_vaccine_cdc_2026": "recommended"
+    },
+    "brasilia": {
+      "city": "Brasilia",
+      "stadium": "Arena BRB Mane Garrincha",
+      "capacity": 69910,
+      "lat": -15.784,
+      "lon": -47.899,
+      "elevation_m": 1172,
+      "normals": "1991-2020",
+      "climate_group": "dry upland",
+      "june": {
+        "tmax": 25.3,
+        "tmean": 19.3,
+        "tmin": 14.2,
+        "rh": 58.8,
+        "precip_mm": 3.3
+      },
+      "july": {
+        "tmax": 25.6,
+        "tmean": 19.3,
+        "tmin": 13.9,
+        "rh": 51.0,
+        "precip_mm": 1.5
+      },
+      "yellow_fever_vaccine_cdc_2026": "recommended"
+    },
+    "belo_horizonte": {
+      "city": "Belo Horizonte",
+      "stadium": "Estadio Mineirao",
+      "capacity": 66658,
+      "lat": -19.866,
+      "lon": -43.971,
+      "elevation_m": 852,
+      "normals": "1991-2020",
+      "climate_group": "dry upland",
+      "june": {
+        "tmax": 24.9,
+        "tmean": 19.6,
+        "tmin": 15.4,
+        "rh": 62.6,
+        "precip_mm": 11.4
+      },
+      "july": {
+        "tmax": 24.9,
+        "tmean": 19.4,
+        "tmin": 15.2,
+        "rh": 58.4,
+        "precip_mm": 5.4
+      },
+      "yellow_fever_vaccine_cdc_2026": "recommended (Minas Gerais)"
+    },
+    "porto_alegre": {
+      "city": "Porto Alegre",
+      "stadium": "Estadio Beira-Rio",
+      "capacity": 50848,
+      "lat": -30.065,
+      "lon": -51.236,
+      "elevation_m": 10,
+      "normals": "1991-2020",
+      "climate_group": "cool",
+      "june": {
+        "tmax": 20.3,
+        "tmean": 14.8,
+        "tmin": 11.3,
+        "rh": 82.8,
+        "precip_mm": 130.4
+      },
+      "july": {
+        "tmax": 19.7,
+        "tmean": 14.1,
+        "tmin": 10.4,
+        "rh": 81.3,
+        "precip_mm": 163.5
+      },
+      "yellow_fever_vaccine_cdc_2026": "recommended (Rio Grande do Sul)"
+    },
+    "salvador": {
+      "city": "Salvador",
+      "stadium": "Arena Fonte Nova",
+      "capacity": 47915,
+      "lat": -12.979,
+      "lon": -38.504,
+      "elevation_m": 8,
+      "normals": "1991-2020",
+      "climate_group": "warm-humid coastal",
+      "june": {
+        "tmax": 27.1,
+        "tmean": 24.3,
+        "tmin": 21.9,
+        "rh": 84.9,
+        "precip_mm": 237.6
+      },
+      "july": {
+        "tmax": 26.6,
+        "tmean": 23.7,
+        "tmin": 21.1,
+        "rh": 83.4,
+        "precip_mm": 194.1
+      },
+      "yellow_fever_vaccine_cdc_2026": "check: recommended only for designated areas of Bahia"
+    },
+    "recife": {
+      "city": "Recife",
+      "stadium": "Arena Pernambuco",
+      "capacity": 45440,
+      "lat": -8.04,
+      "lon": -35.008,
+      "elevation_m": 10,
+      "normals": "1991-2020",
+      "climate_group": "warm-humid coastal",
+      "june": {
+        "tmax": 28.5,
+        "tmean": 24.8,
+        "tmin": 21.5,
+        "rh": 84.6,
+        "precip_mm": 390.5
+      },
+      "july": {
+        "tmax": 27.9,
+        "tmean": 24.2,
+        "tmin": 21.0,
+        "rh": 83.9,
+        "precip_mm": 314.8
+      },
+      "yellow_fever_vaccine_cdc_2026": "not recommended (Pernambuco)"
+    },
+    "fortaleza": {
+      "city": "Fortaleza",
+      "stadium": "Arena Castelao",
+      "capacity": 57867,
+      "lat": -3.807,
+      "lon": -38.522,
+      "elevation_m": 16,
+      "normals": "1991-2020",
+      "climate_group": "warm-humid coastal",
+      "june": {
+        "tmax": 30.5,
+        "tmean": 26.4,
+        "tmin": 23.2,
+        "rh": 79.9,
+        "precip_mm": 130.0
+      },
+      "july": {
+        "tmax": 30.6,
+        "tmean": 26.2,
+        "tmin": 22.8,
+        "rh": 76.9,
+        "precip_mm": 69.7
+      },
+      "yellow_fever_vaccine_cdc_2026": "not recommended (Ceara)"
+    }
+  }
+}

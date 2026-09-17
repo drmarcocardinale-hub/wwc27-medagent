@@ -1,0 +1,433 @@
+{
+ "A_B": [
+  {
+   "id": "A01",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 30.6
+  },
+  {
+   "id": "A02",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 51.0
+  },
+  {
+   "id": "A03",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 14.1
+  },
+  {
+   "id": "A04",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 390.5
+  },
+  {
+   "id": "A05",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 1172
+  },
+  {
+   "id": "A06",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 852
+  },
+  {
+   "id": "A07",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 25
+  },
+  {
+   "id": "A08",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 8
+  },
+  {
+   "id": "A09",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E05",
+    "E06",
+    "E24"
+   ]
+  },
+  {
+   "id": "A10",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E06",
+    "E05"
+   ]
+  },
+  {
+   "id": "A11",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E10",
+    "E11",
+    "E12"
+   ]
+  },
+  {
+   "id": "A12",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E10",
+    "E11",
+    "E12"
+   ]
+  },
+  {
+   "id": "A13",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E10"
+   ]
+  },
+  {
+   "id": "A14",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E13"
+   ]
+  },
+  {
+   "id": "A15",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E25",
+    "E24",
+    "E10"
+   ]
+  },
+  {
+   "id": "A16",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E26"
+   ]
+  },
+  {
+   "id": "A17",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E24",
+    "E15",
+    "E33"
+   ]
+  },
+  {
+   "id": "A18",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E01"
+   ]
+  },
+  {
+   "id": "A19",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E09"
+   ]
+  },
+  {
+   "id": "A20",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E18"
+   ]
+  },
+  {
+   "id": "B01",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 3211.0
+  },
+  {
+   "id": "B02",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 5941.0
+  },
+  {
+   "id": "B03",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 29.3
+  },
+  {
+   "id": "B04",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "very high"
+   ]
+  },
+  {
+   "id": "B05",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 34.9
+  },
+  {
+   "id": "B06",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "Brasilia",
+    "Porto Alegre"
+   ]
+  },
+  {
+   "id": "B07",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "Recife",
+    "Rio de Janeiro"
+   ]
+  },
+  {
+   "id": "B08",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "not recommended"
+   ]
+  },
+  {
+   "id": "B09",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "Porto Alegre"
+   ]
+  },
+  {
+   "id": "B10",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 339.0
+  }
+ ],
+ "D": [
+  {
+   "id": "D01",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D02",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D03",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D04",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D05",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D06",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D07",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D08",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D09",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D10",
+   "retrieval_declined": true,
+   "returned": []
+  }
+ ],
+ "holdout_in_scope": [
+  {
+   "q": "How common were breathing-related illnesses among players at Qatar 2022?",
+   "expect": "E06",
+   "top3": [
+    "E05",
+    "E06"
+   ],
+   "ok": true
+  },
+  {
+   "q": "Is there evidence that cooling vests help women exercising in the heat?",
+   "expect": "E22",
+   "top3": [
+    "E22",
+    "E21",
+    "E31"
+   ],
+   "ok": true
+  },
+  {
+   "q": "How much does neuromuscular training cut knee ligament injuries?",
+   "expect": "E25",
+   "top3": [
+    "E25",
+    "E10",
+    "E24"
+   ],
+   "ok": true
+  },
+  {
+   "q": "What did cardiac screening find in female footballers?",
+   "expect": "E26",
+   "top3": [
+    "E26"
+   ],
+   "ok": true
+  },
+  {
+   "q": "Did coaches pressure doctors over concussion decisions?",
+   "expect": "E18",
+   "top3": [
+    "E18"
+   ],
+   "ok": true
+  },
+  {
+   "q": "Are dengue outbreaks a concern in Brazil?",
+   "expect": "E28",
+   "top3": [
+    "E30"
+   ],
+   "ok": false
+  },
+  {
+   "q": "Does the menstrual cycle affect injury risk?",
+   "expect": "E15",
+   "top3": [
+    "E15",
+    "E14",
+    "E23"
+   ],
+   "ok": true
+  },
+  {
+   "q": "How are painkillers and anti-inflammatories used at World Cups?",
+   "expect": "E20",
+   "top3": [],
+   "ok": false
+  },
+  {
+   "q": "How much running did teams do at the 2023 Women's World Cup?",
+   "expect": "E19",
+   "top3": [
+    "E19"
+   ],
+   "ok": true
+  },
+  {
+   "q": "When should blood tests for iron be taken relative to training?",
+   "expect": "E27",
+   "top3": [],
+   "ok": false
+  }
+ ],
+ "holdout_out_of_scope": [
+  {
+   "q": "What was the injury rate at the 2011 Women's World Cup?",
+   "declined": true,
+   "returned": []
+  },
+  {
+   "q": "How many yellow cards were shown at the 2023 Women's World Cup?",
+   "declined": true,
+   "returned": []
+  },
+  {
+   "q": "What is the best pre-match meal for a goalkeeper?",
+   "declined": false,
+   "returned": [
+    "E22"
+   ]
+  },
+  {
+   "q": "Which airline should we use between São Paulo and Recife?",
+   "declined": false,
+   "returned": [
+    "E30"
+   ]
+  },
+  {
+   "q": "What is the population of Salvador?",
+   "declined": true,
+   "returned": []
+  },
+  {
+   "q": "Which altitude training camp is best in Colombia?",
+   "declined": true,
+   "returned": []
+  },
+  {
+   "q": "What was the attendance at the 2019 final?",
+   "declined": true,
+   "returned": []
+  },
+  {
+   "q": "Who is the head coach of Brazil's women's team?",
+   "declined": false,
+   "returned": [
+    "E18"
+   ]
+  },
+  {
+   "q": "What visa do we need to enter Brazil?",
+   "declined": true,
+   "returned": []
+  },
+  {
+   "q": "What was the illness incidence at the 2018 men's World Cup?",
+   "declined": true,
+   "returned": []
+  }
+ ],
+ "summary": {
+  "A_B_reachable": "30/30",
+  "D_declined_at_retrieval": "10/10",
+  "holdout_in_scope_top3": "7/10",
+  "holdout_out_of_scope_declined": "7/10",
+  "note": "Retrieval rules were revised while developing set D, so D is a development set; the held-out lists were run once without tuning. Items not declined at retrieval return related but non-matching evidence; the agent must recognise the mismatch (tested in the end-to-end evaluation)."
+ }
+}

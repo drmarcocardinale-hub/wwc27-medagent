@@ -1,0 +1,29 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"   # weekly re-validation (Monday 06:00 UTC)
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install -e ".[test]"
+      - name: Unit, data and benchmark-integrity tests
+        run: pytest -q
+      - name: Tool-layer benchmark check
+        run: python benchmark/run_tool_check.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tool-check-${{ matrix.python-version }}
+          path: benchmark/results/tool_check.json
