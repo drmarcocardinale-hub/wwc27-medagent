@@ -187,11 +187,19 @@ def venue_briefing(city: str) -> str:
 def main() -> None:
     if "--http" in sys.argv:
         host, port = "0.0.0.0", int(os.environ.get("PORT", "8000"))
+        # Streamable HTTP keeps per-session state on the instance that created it. On a
+        # serverless host (Cloud Run, and anything else that autoscales) a follow-up request
+        # can land on a different instance, which then rejects the unknown session. Stateless
+        # mode makes every request self-contained, at the cost of server-initiated messages,
+        # which this read-only server does not use. Set MCP_STATELESS=1 there.
+        stateless = os.environ.get("MCP_STATELESS", "").lower() in ("1", "true", "yes")
         if MCP_MAJOR >= 2:            # host/port are run() kwargs in mcp 2.x
-            mcp.run(transport="streamable-http", host=host, port=port)
+            mcp.run(transport="streamable-http", host=host, port=port,
+                    stateless_http=stateless)
         else:                         # ...and live on .settings in mcp 1.x
             mcp.settings.host = host
             mcp.settings.port = port
+            mcp.settings.stateless_http = stateless
             mcp.run(transport="streamable-http")
     else:
         mcp.run()

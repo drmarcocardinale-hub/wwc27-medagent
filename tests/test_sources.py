@@ -528,3 +528,36 @@ def test_restricted_sources_are_not_written_to_the_public_archive(monkeypatch, t
     mod.do_snapshot(args_all)
     stored = json.loads((tmp_path / "latest.json").read_text())["records"]
     assert {r["source"] for r in stored} == {"openmeteo", "google"}
+
+
+def test_stateless_mode_is_configurable_for_serverless(monkeypatch):
+    """Cloud Run can route a follow-up request to a different instance.
+
+    Streamable HTTP keeps session state in memory, so the server must be able to run stateless
+    there. Both MCP SDK majors support it, by different routes.
+    """
+    from wwc27_medagent import server
+
+    captured = {}
+    monkeypatch.setattr(server.mcp, "run", lambda **kw: captured.update(kw))
+    monkeypatch.setattr(server.sys, "argv", ["wwc27-medagent", "--http"])
+    monkeypatch.setenv("MCP_STATELESS", "1")
+    monkeypatch.setenv("PORT", "8080")
+
+    if server.MCP_MAJOR >= 2:
+        server.main()
+        assert captured["stateless_http"] is True
+        assert captured["port"] == 8080
+    else:
+        class Settings:
+            host = port = stateless_http = None
+        monkeypatch.setattr(server.mcp, "settings", Settings())
+        server.main()
+        assert server.mcp.settings.stateless_http is True
+        assert server.mcp.settings.port == 8080
+
+    monkeypatch.setenv("MCP_STATELESS", "")
+    captured.clear()
+    if server.MCP_MAJOR >= 2:
+        server.main()
+        assert captured["stateless_http"] is False, "stateful must stay the default locally"

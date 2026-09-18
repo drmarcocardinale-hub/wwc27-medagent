@@ -28,7 +28,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ```bash
 git clone https://github.com/drmarcocardinale-hub/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
-pytest -q                          # 91 tests: source values, computations, refusal, MCP registration, benchmark integrity
+pytest -q                          # 92 tests: source values, computations, refusal, MCP registration, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check
 ```
 
@@ -37,14 +37,15 @@ python benchmark/run_tool_check.py # tool-layer benchmark check
 | | Link | Needs |
 |---|---|---|
 | **Read the tables in a browser** | <https://drmarcocardinale-hub.github.io/wwc27-medagent/> | nothing |
-| **Use it as an AI agent, hosted** | `https://OWNER-wwc27-medagent.hf.space/mcp` | an MCP client |
+| **Use it as an AI agent, hosted** | Cloud Run endpoint — see [`deploy/cloudrun/`](deploy/cloudrun/README.md) | an MCP client |
 | **Run it locally** | `pip install -e .` then the config below | Python 3.10+ |
 | **See what it answers, no client** | `python scripts/demo.py` | Python 3.10+ |
 
 The GitHub Pages site (`scripts/build_site.py` &rarr; `docs/`) is generated from the same JSON the
 agent serves, and the venue table's simplified WBGT is computed by `core` at build time so the
-page and the agent can never disagree. The hosted endpoint is assembled by
-`scripts/make_space.py`; see that file for the one-off setup.
+page and the agent can never disagree. The hosted endpoint deploys to Google Cloud Run with `./deploy/cloudrun/deploy.sh`
+(scale-to-zero, stable URL); `scripts/make_space.py` packages the same image for a Hugging Face
+Space as an alternative.
 
 ## Connect to Claude
 

@@ -1,0 +1,16 @@
+# Keep the image to just the runtime: the build is faster and the container smaller.
+.git
+.github
+build/
+docs/
+benchmark/
+tests/
+scripts/
+manuscript/
+**/__pycache__/
+**/*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/
+dist/
+wwc27_medagent/data/airq_archive/

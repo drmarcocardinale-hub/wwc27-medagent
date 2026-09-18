@@ -2,6 +2,16 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.5.1 — 2026-09-18
+Hosting moved to Google Cloud Run after the Hugging Face free tier refused the Space
+(`Quota exceeded for flavor cpu-basic: limit=0` on a correctly configured, single Space).
+
+- **Stateless HTTP mode** (`MCP_STATELESS=1`). Streamable HTTP keeps session state in the instance's memory; an autoscaling host can route a follow-up request to a different instance, which then rejects the unknown session. Stateless mode makes every request self-contained — verified locally: `tools/list` and `tools/call` both succeed with no session header. Stateful remains the default for local use, and the only capability given up is server-initiated messages, which this read-only server does not use.
+- **`deploy/cloudrun/`**: a one-command deploy (`deploy.sh`) that builds from the repository Dockerfile with Cloud Build — no local Docker — plus a README explaining each setting and its cost implications. Scale-to-zero, capped at 3 instances.
+- **`.dockerignore` / `.gcloudignore`**: the build context drops from the whole repository to 456 kB by excluding git history, tests, the benchmark, the site and the Space bundle.
+- The Hugging Face path (`scripts/make_space.py`) is kept and still works; the two hosts run the same image.
+- 92 automated tests.
+
 ## 0.5.0 — 2026-09-18
 Deployment: the agent and its content are now reachable without installing anything.
 
