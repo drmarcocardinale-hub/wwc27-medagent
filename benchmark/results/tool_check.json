@@ -156,6 +156,39 @@
    ]
   },
   {
+   "id": "A21",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 15
+  },
+  {
+   "id": "A22",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 5
+  },
+  {
+   "id": "A23",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 1600
+  },
+  {
+   "id": "A24",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": 54
+  },
+  {
+   "id": "A25",
+   "route": "find_evidence(question text)",
+   "ok": true,
+   "top3": [
+    "E34",
+    "E35"
+   ]
+  },
+  {
    "id": "B01",
    "route": "oracle tool call",
    "ok": true,
@@ -222,6 +255,30 @@
    ]
   },
   {
+   "id": "B11",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "elevated"
+   ]
+  },
+  {
+   "id": "B12",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "Sao Paulo"
+   ]
+  },
+  {
+   "id": "B13",
+   "route": "oracle tool call",
+   "ok": true,
+   "got": [
+    "Brasilia"
+   ]
+  },
+  {
    "id": "B10",
    "route": "oracle tool call",
    "ok": true,
@@ -276,6 +333,16 @@
   },
   {
    "id": "D10",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D11",
+   "retrieval_declined": true,
+   "returned": []
+  },
+  {
+   "id": "D12",
    "retrieval_declined": true,
    "returned": []
   }
@@ -424,8 +491,8 @@
   }
  ],
  "summary": {
-  "A_B_reachable": "30/30",
-  "D_declined_at_retrieval": "10/10",
+  "A_B_reachable": "38/38",
+  "D_declined_at_retrieval": "12/12",
   "holdout_in_scope_top3": "7/10",
   "holdout_out_of_scope_declined": "7/10",
   "note": "Retrieval rules were revised while developing set D, so D is a development set; the held-out lists were run once without tuning. Items not declined at retrieval return related but non-matching evidence; the agent must recognise the mismatch (tested in the end-to-end evaluation)."

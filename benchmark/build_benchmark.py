@@ -1,10 +1,10 @@
 """Build the WWC27-MedAgent validation benchmark (benchmark/questions.jsonl).
 
 Four sets, following the Paper2Agent evaluation design (Miao et al., Nature 2026):
-  A  reproduction      (20) - single facts reported in the article/sources; exact ground truth
-  B  application       (10) - novel questions that need tool computation or composition
-  C  open-ended        (10) - practitioner scenarios scored by two raters with a rubric
-  D  out-of-scope      (10) - questions the evidence base cannot answer; correct = decline
+  A  reproduction      (25) - single facts reported in the article/sources; exact ground truth
+  B  application       (13) - novel questions that need tool computation or composition
+  C  open-ended        (11) - practitioner scenarios scored by two raters with a rubric
+  D  out-of-scope      (12) - questions the evidence base cannot answer; correct = decline
 
 Ground truths for A and B are computed from the curated data files (not typed by hand),
 so the benchmark stays consistent with the versioned evidence base.
@@ -55,6 +55,11 @@ def items() -> list[dict]:
         num("A18", (A, "How many match injuries per match were reported at the 2014 World Cup in Brazil?"), ev["E01"]["values"]["per_match"], "per match", 0.005, ["find_evidence"], ["Junge2015"]),
         num("A19", (A, "In which minute of each half were hydration breaks taken at the 2026 men's World Cup?"), ev["E09"]["values"]["minute"], "min", 0, ["find_evidence"], ["FIFA2025"]),
         num("A20", (A, "What percentage of medical staff at the 2023 Women's World Cup felt pressured by coaching staff when assessing suspected concussion?"), ev["E18"]["values"]["pressure_coaches_pct"], "%", 0.5, ["find_evidence"], ["Wilke2024"]),
+        num("A21", (A, "What is the WHO 2021 guideline level for 24-hour PM2.5?"), ev["E37"]["values"]["pm25_24h"], "ug/m3", 0.05, ["get_air_quality", "find_evidence"], ["WHO_AQG2021"]),
+        num("A22", (A, "What is the WHO 2021 guideline level for annual PM2.5?"), ev["E37"]["values"]["pm25_annual"], "ug/m3", 0.05, ["get_air_quality", "find_evidence"], ["WHO_AQG2021"]),
+        num("A23", (A, "Under the 2026 anti-doping rules, what is the maximum permitted inhaled salbutamol dose over 24 hours?"), ev["E38"]["values"]["salbutamol_ug"], "ug", 0.5, ["plan_respiratory_care", "find_evidence"], ["WADA2026"]),
+        num("A24", (A, "Under the 2026 anti-doping rules, what is the maximum permitted inhaled formoterol dose over 24 hours?"), ev["E38"]["values"]["formoterol_ug"], "ug", 0.5, ["plan_respiratory_care", "find_evidence"], ["WADA2026"]),
+        num("A25", (A, "What is the upper end of the reported range of respiratory conditions among elite athletes (percent)?"), ev["E34"]["values"]["prevalence_high_pct"], "%", 0.5, ["find_evidence"], ["Ora2024"]),
     ]
 
     B = "application"
@@ -77,6 +82,9 @@ def items() -> list[dict]:
         cat("B07", (B, "We play in Rio de Janeiro, Recife and Belo Horizonte. Which of these venues should be treated as heat-exposed (indicative sWBGT at daily maximum of 28 °C or more)?"), cl["venue_specific"]["heat_exposed_venues"], ["build_screening_checklist", "get_venue_profile"], ["INMET"]),
         cat("B08", (B, "Is yellow fever vaccination recommended for travel to Recife? Answer 'recommended' or 'not recommended'."), ["not recommended"], ["get_venue_profile"], ["CDC2026"]),
         cat("B09", (B, "Which host city has the lowest indicative daily-mean sWBGT in July?"), [coolest], ["get_venue_profile"], ["INMET"]),
+        cat("B11", (B, "A 24-hour PM2.5 concentration of 30 ug/m3 is forecast for a training day. Which planning band does that fall into (good, moderate, elevated, high or very high)?"), [core.pm25_band(30)["band"]], ["plan_respiratory_care", "get_air_quality"], ["WHO_AQG2021"]),
+        cat("B12", (B, "Which host city's air quality is monitored by CETESB?"), ["Sao Paulo"], ["get_air_quality"], []),
+        cat("B13", (B, "Among Brasília, Porto Alegre and Fortaleza, in which host city is very dry winter air the main airway concern?"), ["Brasilia"], ["get_air_quality", "get_venue_profile"], []),
         num("B10", (B, "How far is it from Rio de Janeiro to São Paulo (great-circle)?"), core.distance_km("Rio de Janeiro", "Sao Paulo"), "km", 0.02, ["calculate_travel_burden"], []),
     ]
 
@@ -110,6 +118,11 @@ def items() -> list[dict]:
         ("C09", "Should we give players NSAIDs routinely before matches?",
          ["advises against routine pre-match NSAIDs", "medication use has been high at World Cups (higher mean intake at the Women's World Cup)", "log/reconcile medication", "provides source links"],
          ["Tscholl2015"]),
+        ("C11", "Two of our players have exercise-induced bronchoconstriction and we train in São Paulo in July. How should we manage them?",
+         ["objective diagnosis/documented treatment plan", "inhaled corticosteroid-based treatment rather than reliever alone", "extended warm-up",
+          "avoid peak-traffic hours or move hard sessions indoors when pollution is elevated", "check local air quality or monitoring agency data (CETESB)",
+          "keep inhaled doses within anti-doping limits and consider a therapeutic use exemption", "provides source links"],
+         ["Ora2024", "He2022", "VanMeerbeke2024", "WADA2026", "WHO_AQG2021"]),
         ("C10", "What have previous World Cups shown about illness during the tournament?",
          ["respiratory infection most common illness", "Qatar 2022: 80% (12/15) of time-loss illnesses respiratory", "Women's World Cup 2023: respiratory most frequent", "illness rates were low", "provides source links"],
          ["Serner2025", "Lu2026"]),
@@ -129,6 +142,8 @@ def items() -> list[dict]:
         ("D08", "What will the WBGT be in Recife on 30 June 2027?"),
         ("D09", "What was the injury incidence at the UEFA Women's Euro 2025?"),
         ("D10", "What is the current stock price of a major kit manufacturer?"),
+        ("D11", "What was the PM2.5 concentration at the 2014 World Cup final in Rio de Janeiro?"),
+        ("D12", "How many players at the 2023 Women's World Cup had asthma?"),
     ]
     for qid, q in oos:
         rows.append({"id": qid, "set": D, "question": q, "answer_type": "refusal", "ground_truth": "decline",

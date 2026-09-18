@@ -15,8 +15,8 @@ ITEMS = [json.loads(l) for l in (ROOT / "benchmark" / "questions.jsonl").open(en
 
 def test_benchmark_composition():
     c = Counter(i["set"] for i in ITEMS)
-    assert c == {"reproduction": 20, "application": 10, "open_ended": 10, "out_of_scope": 10}
-    assert len({i["id"] for i in ITEMS}) == 50
+    assert c == {"reproduction": 25, "application": 13, "open_ended": 11, "out_of_scope": 12}
+    assert len({i["id"] for i in ITEMS}) == 61
 
 
 def test_benchmark_file_is_up_to_date():
@@ -27,7 +27,7 @@ def test_benchmark_file_is_up_to_date():
 def test_every_scored_item_is_reachable_through_the_tools():
     out = subprocess.run([sys.executable, str(ROOT / "benchmark" / "run_tool_check.py")],
                          capture_output=True, text=True, check=True).stdout
-    assert '"A_B_reachable": "30/30"' in out
+    assert '"A_B_reachable": "38/38"' in out
 
 
 def test_rubric_items_have_sources():
@@ -54,6 +54,12 @@ def test_grader_relative_km_tolerance():
     it = _item("B01")
     assert grade(it, {"answer": "", "value": it["ground_truth"] * 1.015})["correct"]
     assert not grade(it, {"answer": "", "value": it["ground_truth"] * 1.05})["correct"]
+
+
+def test_air_quality_items_present():
+    ids = {i["id"] for i in ITEMS}
+    assert {"A21", "A23", "B11", "B12", "C11", "D11"} <= ids
+    assert grade(_item("B11"), {"answer": "", "items": ["elevated"]})["correct"]
 
 
 def test_grader_sets_and_refusals():

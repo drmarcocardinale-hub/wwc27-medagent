@@ -117,7 +117,7 @@ def test_yellow_fever_state_guidance():
 # ---------------------------------------------------------------- screening
 def test_checklist_all_domains_and_venue_actions():
     cl = core.screening_checklist("all", venues_played=["Fortaleza", "Porto Alegre"])
-    assert len(cl["items"]) == 10
+    assert len(cl["items"]) == 11
     vs = cl["venue_specific"]
     assert "Fortaleza" in vs["heat_exposed_venues"] and "Porto Alegre" in vs["cool_venues"]
 
@@ -177,3 +177,53 @@ def test_server_tool_call_roundtrip():
     payload = out[1] if isinstance(out, tuple) else out
     text = json.dumps(payload, default=str)
     assert "Recife" in text and "390.5" in text
+
+
+# ---------------------------------------------------------------- air quality and airways
+def test_air_quality_profile_has_sources_and_guidelines():
+    aq = core.air_quality("Sao Paulo")
+    assert "CETESB" in aq["monitoring_agency"]
+    g = aq["who_2021_guidelines_ug_m3"]
+    assert g["pm2_5"] == {"annual": 5, "24h": 15} and g["pm10"] == {"annual": 15, "24h": 45}
+    assert g["no2"] == {"annual": 10, "24h": 25} and g["o3"] == {"peak_season": 60, "8h": 100}
+    assert any("WHO" in s["citation"] for s in aq["sources"])
+
+
+def test_air_quality_covers_every_venue():
+    for key in core.venues():
+        aq = core.air_quality(key)
+        assert aq["typical_sources"] and aq["june_july_note"]
+
+
+@pytest.mark.parametrize("pm,band", [(5, "good"), (15, "good"), (20, "moderate"), (30, "elevated"),
+                                     (45, "high"), (120, "very_high")])
+def test_pm25_planning_bands(pm, band):
+    assert core.pm25_band(pm)["band"] == band
+
+
+def test_pm25_band_rejects_negative():
+    with pytest.raises(ValueError):
+        core.pm25_band(-1)
+
+
+def test_respiratory_plan_contents():
+    r = core.respiratory_plan(30, athlete_has_asthma_or_eib=True, city="Fortaleza")
+    assert r["pollution_band"]["band"] == "elevated"
+    assert r["anti_doping_2026"]["permitted_inhaled_max_24h"]["salbutamol_ug"] == 1600
+    assert r["anti_doping_2026"]["permitted_inhaled_max_24h"]["formoterol_ug"] == 54
+    assert "Fortaleza" == r["city_context"]["city"]
+    assert r["for_athletes_with_airway_disease"]
+    assert {s["key"] for s in r["sources"]} >= {"Ora2024", "He2022", "WADA2026"}
+
+
+def test_live_lookup_degrades_gracefully_without_network():
+    out = core._live_air_quality(-23.5, -46.6, timeout=0.001)
+    assert out["status"] in {"ok", "unavailable"}
+    if out["status"] == "unavailable":
+        assert "advice" in out
+
+
+def test_respiratory_domain_in_checklist():
+    cl = core.screening_checklist("pre_tournament", ["respiratory_airway"])
+    assert "asthma" in cl["items"]["respiratory_airway"]["label"].lower()
+    assert len(core.screening_matrix()["domains"]) == 11

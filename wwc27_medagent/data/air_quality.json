@@ -1,0 +1,161 @@
+{
+  "_meta": {
+    "version": "0.2.0",
+    "last_updated": "2026-09-18",
+    "purpose": "Air-quality context for the eight host cities, thresholds for interpreting measurements, and a slot for measured June-July climatology.",
+    "climatology_status": "not populated in this release. Run scripts/refresh_air_quality.py on a machine with internet access to fill 'climatology' from the Open-Meteo air-quality archive (CAMS global reanalysis/forecast). The tools work without it and say so.",
+    "caveats": [
+      "City profiles below are qualitative and describe typical sources and seasonality; they are not measurements.",
+      "Reanalysis or satellite-derived values represent a grid cell, not the stadium or training ground; a roadside training pitch can be much worse than the city mean.",
+      "Where a state network operates, its stations are the reference measurement; check the agency portal in the weeks before travel.",
+      "Brazil's national standards are set by CONAMA Resolution 506/2024 and tighten in stages (PI-2 applies from 1 January 2025); they are less strict than the 2021 WHO guideline levels."
+    ]
+  },
+  "guidelines_who_2021_ug_m3": {
+    "pm2_5": {
+      "annual": 5,
+      "24h": 15
+    },
+    "pm10": {
+      "annual": 15,
+      "24h": 45
+    },
+    "no2": {
+      "annual": 10,
+      "24h": 25
+    },
+    "o3": {
+      "peak_season": 60,
+      "8h": 100
+    },
+    "source": "WHO_AQG2021"
+  },
+  "planning_bands_pm2_5_24h_ug_m3": {
+    "_note": "Author-defined planning bands for training and match decisions, anchored on the WHO 2021 24-hour guideline level (15 ug/m3) and its interim targets (IT-4 25, IT-3 37.5, IT-2 50). They are not regulatory thresholds and not a clinical standard.",
+    "good": {
+      "max": 15,
+      "action": "No restriction. Standard planning."
+    },
+    "moderate": {
+      "max": 25,
+      "action": "Proceed. Athletes with asthma or exercise-induced bronchoconstriction (EIB) should pre-treat as usual and report symptoms; prefer parks or low-traffic routes for easy sessions."
+    },
+    "elevated": {
+      "max": 37.5,
+      "action": "Shift high-intensity outdoor work away from peak traffic hours; consider indoor alternatives for the hardest sessions; check EIB athletes before and after training; ensure reliever inhalers are carried."
+    },
+    "high": {
+      "max": 50,
+      "action": "Move high-intensity and long outdoor sessions indoors where possible; shorten outdoor exposure; review asthma action plans; discuss with the team physician before any outdoor session for symptomatic athletes."
+    },
+    "very_high": {
+      "max": null,
+      "action": "Train indoors with filtered air if available; outdoor sessions only if unavoidable and shortened; individual medical review for athletes with airway disease; escalate to tournament medical officers if a match is affected."
+    }
+  },
+  "asthma_eib": {
+    "prevalence_note": "Respiratory conditions affect roughly 20-70% of elite athletes depending on the sport; EIB is the most common chronic condition in elite sport, and resting spirometry is often normal, so objective testing is needed.",
+    "diagnosis": [
+      "Exercise challenge or eucapnic voluntary hyperpnoea rather than resting spirometry alone",
+      "Document the diagnosis before the tournament; symptoms alone over- and under-diagnose"
+    ],
+    "management": [
+      "Inhaled corticosteroids are the basis of treatment; short-acting beta-2 agonists alone are not adequate control",
+      "Extended warm-up before intense work reduces EIB severity",
+      "Reduce exposure: avoid peak-traffic hours and roadside routes, and use indoor alternatives when pollution is high",
+      "Carry spare inhalers and spacers; check they are in the medical kit for every venue"
+    ],
+    "anti_doping_2026": {
+      "permitted_inhaled_max_24h": {
+        "salbutamol_ug": 1600,
+        "formoterol_ug": 54,
+        "salmeterol_ug": 200,
+        "vilanterol_ug": 25
+      },
+      "notes": "Inhaled use only, within these 24-hour maxima (salbutamol also not more than 600 ug per 8 h; formoterol not more than 36 ug per 12 h; salmeterol not more than 100 ug per 8 h). Other routes are prohibited. Urinary thresholds apply for salbutamol and formoterol. Check the current list and whether a therapeutic use exemption is needed.",
+      "source": "WADA2026"
+    },
+    "refs": [
+      "Ora2024",
+      "He2022",
+      "VanMeerbeke2024",
+      "WADA2026",
+      "Esh2026"
+    ]
+  },
+  "cities": {
+    "rio_de_janeiro": {
+      "typical_sources": "Road traffic in a dense coastal metropolis, with industry in the wider bay area",
+      "june_july_note": "Coastal ventilation is usually good, but calm, stable winter mornings can trap traffic emissions.",
+      "monitoring": {
+        "agency": "INEA (Rio de Janeiro state) / MonitorAr-Rio (city)",
+        "verified": true
+      },
+      "table_label": "Traffic; usually well ventilated"
+    },
+    "sao_paulo": {
+      "typical_sources": "The largest vehicle fleet in South America; traffic-related PM and NO2 dominate",
+      "june_july_note": "Winter is the dry season with frequent thermal inversions, the time of year when particulate levels are typically highest.",
+      "monitoring": {
+        "agency": "CETESB (São Paulo state)",
+        "verified": true
+      },
+      "table_label": "Traffic; winter inversions (worst period)"
+    },
+    "brasilia": {
+      "typical_sources": "Traffic; regional biomass burning during the dry season",
+      "june_july_note": "Very dry air (mean relative humidity about 51% in July) irritates airways in its own right; dry-season fires in the central region can raise particulate levels.",
+      "monitoring": {
+        "agency": "IBRAM (Federal District)",
+        "verified": false
+      },
+      "table_label": "Very dry air; dry-season smoke possible"
+    },
+    "belo_horizonte": {
+      "typical_sources": "Traffic, with mining and industry in the metropolitan region",
+      "june_july_note": "Dry winter with light winds; particulate levels are usually higher than in the wet season.",
+      "monitoring": {
+        "agency": "FEAM/SISEMA (Minas Gerais) air quality bulletin",
+        "verified": true
+      },
+      "table_label": "Traffic and industry; dry, light winds"
+    },
+    "porto_alegre": {
+      "typical_sources": "Traffic and regional industry",
+      "june_july_note": "Humid, often windy and wet in winter, which disperses pollutants; cold, damp air is itself a trigger for exercise-induced bronchoconstriction.",
+      "monitoring": {
+        "agency": "FEPAM (Rio Grande do Sul) air quality reports",
+        "verified": true
+      },
+      "table_label": "Well dispersed; cold, damp air"
+    },
+    "salvador": {
+      "typical_sources": "Traffic; port and industrial activity in the metropolitan region",
+      "june_july_note": "Strong sea breezes and a wet June-July usually keep particulate levels low.",
+      "monitoring": {
+        "agency": "INEMA (Bahia)",
+        "verified": false
+      },
+      "table_label": "Sea breeze; wet, good dispersion"
+    },
+    "recife": {
+      "typical_sources": "Traffic and port activity",
+      "june_july_note": "Wettest months of the year with steady onshore winds; good dispersion, high humidity.",
+      "monitoring": {
+        "agency": "CPRH (Pernambuco)",
+        "verified": false
+      },
+      "table_label": "Sea breeze; wettest months"
+    },
+    "fortaleza": {
+      "typical_sources": "Traffic; port and industrial complex to the west of the city",
+      "june_july_note": "Persistent trade winds give good ventilation; heat and humidity are the dominant environmental problems here, not pollution.",
+      "monitoring": {
+        "agency": "SEMACE (Ceará)",
+        "verified": false
+      },
+      "table_label": "Trade winds; good ventilation"
+    }
+  },
+  "climatology": null
+}

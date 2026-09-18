@@ -15,9 +15,11 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 | Tool | `estimate_heat_risk` | Indicative sWBGT from a forecast temperature and humidity; FIFA/FIFPRO reference bands; luteal-phase note |
 | Tool | `calculate_travel_burden` | Great-circle legs and climate transitions for an itinerary |
 | Tool | `build_screening_checklist` | Phase × domain checklist (Table 2), with venue-specific actions |
+| Tool | `get_air_quality` | Typical pollution sources and June–July pattern per host city, the state monitoring agency, WHO 2021 guideline levels and Brazil's standards; optional live concentrations from the Open-Meteo (CAMS) API |
+| Tool | `plan_respiratory_care` | PM2.5 planning band with session advice, plus asthma/EIB screening, management and the 2026 anti-doping limits for inhaled beta-2 agonists |
 | Tool | `find_evidence` | Search of the curated, source-linked evidence table; replies "I don't know" when a question is out of scope |
 | Tool | `tournament_facts` | Dates and format |
-| Resource | `wwc27://manuscript`, `wwc27://table1-venues`, `wwc27://table2-screening`, `wwc27://evidence`, `wwc27://references`, `wwc27://changelog` | Machine-readable article content |
+| Resource | `wwc27://manuscript`, `wwc27://table1-venues`, `wwc27://table2-screening`, `wwc27://air-quality`, `wwc27://evidence`, `wwc27://references`, `wwc27://changelog` | Machine-readable article content |
 | Prompt | `pre_tournament_medical_plan`, `venue_briefing` | Step-by-step workflows that call the tools in order |
 
 ## Install and test
@@ -25,7 +27,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ```bash
 git clone https://github.com/OWNER/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
-pytest -q                          # 41 tests: source values, computations, refusal, MCP registration, benchmark integrity
+pytest -q                          # 54 tests: source values, computations, refusal, MCP registration, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check
 ```
 
@@ -48,13 +50,23 @@ Example questions:
 
 ## Validation benchmark
 
-`benchmark/` contains a 50-item benchmark with four sets:
-- 20 reproduction questions;
-- 10 application questions;
-- 10 open-ended questions, scored by two blinded raters;
-- 10 out-of-scope questions.
+`benchmark/` contains a 61-item benchmark with four sets:
+- 25 reproduction questions;
+- 13 application questions;
+- 11 open-ended questions, scored by two blinded raters;
+- 12 out-of-scope questions.
 
 It also contains the scripts to run the agent against two baselines (the manuscript in the prompt, and closed-book) and to score the results. See [`benchmark/README.md`](benchmark/README.md).
+
+## Air quality
+
+City profiles are qualitative (typical sources, June–July pattern, monitoring agency). Measured values are not shipped: run
+
+```bash
+python scripts/refresh_air_quality.py          # needs internet access
+```
+
+to fill a June–July climatology (PM2.5, PM10, NO2, O3) from the Open-Meteo air-quality archive (CAMS), or ask for a live reading with `get_air_quality(city, live=True)`. Model values describe a grid cell, not the stadium; where a state network operates, its stations are the reference measurement.
 
 ## Archiving and citation
 
@@ -62,7 +74,7 @@ The code is on GitHub, and each release is archived on Zenodo with its own DOI (
 
 ## Living-mode curation
 
-1. A curator adds or edits entries in `wwc27_medagent/data/*.json`. Every claim needs a `ref` that resolves to a DOI or URL in `references.json`.
+1. A curator adds or edits entries in `wwc27_medagent/data/*.json` (and re-runs `scripts/refresh_air_quality.py` when air-quality data should be refreshed). Every claim needs a `ref` that resolves to a DOI or URL in `references.json`.
 2. Add a matching assertion to `tests/`, regenerate the benchmark (`python benchmark/build_benchmark.py`) and push. GitHub Actions must pass.
 3. Bump the version, add an entry to `wwc27_medagent/data/CHANGELOG.md` and publish a GitHub release. Zenodo then archives it automatically.
 4. Update triggers are listed in the changelog: new surveillance data, schedule changes and outbreak notices.

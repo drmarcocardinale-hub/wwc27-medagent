@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wwc27-medagent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Paper agent (MCP server) for medical screening and monitoring at the FIFA Women's World Cup Brazil 2027"
 readme = "README.md"
 requires-python = ">=3.10"

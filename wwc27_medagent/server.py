@@ -71,6 +71,24 @@ def find_evidence(query: str, domain: str | None = None, limit: int = 5) -> dict
 
 
 @mcp.tool()
+def get_air_quality(city: str, live: bool = False) -> dict:
+    """Air-quality context for a host city: typical pollution sources, the June-July pattern, the
+    state monitoring agency, WHO 2021 guideline levels and Brazil's national standards. Set live=True
+    to add current pollutant concentrations from the Open-Meteo (CAMS) air-quality API; this needs
+    internet access on the machine running the server and says so clearly when unavailable."""
+    return core.air_quality(city, live)
+
+
+@mcp.tool()
+def plan_respiratory_care(pm2_5_ug_m3: float | None = None, athlete_has_asthma_or_eib: bool = False,
+                          city: str | None = None) -> dict:
+    """Airway-health planning: a PM2.5 planning band with actions (if a concentration is given),
+    asthma/exercise-induced bronchoconstriction screening and management points, and the 2026
+    anti-doping limits for inhaled beta-2 agonists. Do not pass identifiable player data."""
+    return core.respiratory_plan(pm2_5_ug_m3, athlete_has_asthma_or_eib, city)
+
+
+@mcp.tool()
 def tournament_facts() -> dict:
     """Key dates and format of the FIFA Women's World Cup Brazil 2027."""
     return {**core.tournament(), "source": core.cite("FIFA2027")}
@@ -97,6 +115,12 @@ def table1() -> str:
 def table2() -> str:
     """Table 2 source data: phase x domain screening and monitoring matrix (JSON)."""
     return _text("screening.json")
+
+
+@mcp.resource("wwc27://air-quality")
+def air_quality_resource() -> str:
+    """Air-quality profiles, guideline levels, planning bands and asthma/EIB reference data (JSON)."""
+    return _text("air_quality.json")
 
 
 @mcp.resource("wwc27://evidence")
@@ -129,6 +153,8 @@ Women's World Cup Brazil 2027. Follow these steps in order and cite every source
 2. For the base camp ({base_camp}) and each fixture city ({fixtures}), call get_venue_profile.
 3. Call calculate_travel_burden with [{base_camp}, {fixtures}].
 4. Call build_screening_checklist with phase='all' and venues_played set to the fixture cities.
+4b. Call get_air_quality for each fixture city, and plan_respiratory_care if the squad includes
+   athletes with asthma or exercise-induced bronchoconstriction.
 5. For any domain where the squad context suggests extra risk ({squad_notes or 'none given'}),
    call find_evidence with a focused query.
 6. Write the plan as: (a) venue risk summary table; (b) actions by phase; (c) open questions for
@@ -140,8 +166,8 @@ Do not invent numbers or sources. If a tool says it does not know, report that g
 @mcp.prompt()
 def venue_briefing(city: str) -> str:
     """Workflow: one-page medical briefing for a single host city."""
-    return (f"Call get_venue_profile for {city} (both months), then find_evidence for 'heat cooling women' "
-            f"and 'infection vaccination brazil'. Summarise climate, heat band, travel-health points and "
+    return (f"Call get_venue_profile and get_air_quality for {city} (both months), then find_evidence for 'heat cooling women' "
+            f"and 'infection vaccination brazil'. Summarise climate, heat band, air quality, travel-health points and "
             f"recommended actions in under 250 words with source links.")
 
 

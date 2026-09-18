@@ -13,7 +13,7 @@ from functools import lru_cache
 from importlib import resources
 from typing import Any
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 DISCLAIMER = (
     "Decision support only. Outputs summarise published evidence and climate normals; "
@@ -52,6 +52,10 @@ def evidence() -> list[dict]:
 
 def screening_matrix() -> dict:
     return _load("screening.json")
+
+
+def air_quality_data() -> dict:
+    return _load("air_quality.json")
 
 
 def _norm(text: str) -> str:
@@ -180,6 +184,97 @@ def travel_burden(itinerary: list[str]) -> dict:
         "sources": [cite("JanseVanRensburg2021"), cite("Esh2026")],
         "disclaimer": DISCLAIMER,
     }
+
+
+# ------------------------------------------------------------------ air quality
+OPEN_METEO_AQ = "https://air-quality-api.open-meteo.com/v1/air-quality"
+
+
+def pm25_band(pm25_24h: float) -> dict:
+    """Author-defined planning band for a 24-hour PM2.5 concentration (ug/m3)."""
+    if pm25_24h < 0:
+        raise ValueError("PM2.5 cannot be negative")
+    bands = air_quality_data()["planning_bands_pm2_5_24h_ug_m3"]
+    for name in ("good", "moderate", "elevated", "high", "very_high"):
+        b = bands[name]
+        if b["max"] is None or pm25_24h <= b["max"]:
+            return {"band": name, "action": b["action"], "who_24h_guideline_ug_m3": 15,
+                    "source": cite("WHO_AQG2021"),
+                    "note": bands["_note"]}
+    raise AssertionError
+
+
+def _live_air_quality(lat: float, lon: float, timeout: float = 10.0) -> dict:
+    """Current pollutant concentrations from the Open-Meteo air-quality API (CAMS).
+
+    Requires internet access on the machine running the server. Returns a clear
+    status instead of raising when the network is unavailable."""
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    url = (f"{OPEN_METEO_AQ}?latitude={lat:.3f}&longitude={lon:.3f}"
+           "&current=pm2_5,pm10,nitrogen_dioxide,ozone,carbon_monoxide,dust"
+           "&timezone=America%2FSao_Paulo")
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as fh:
+            data = _json.load(fh)
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        return {"status": "unavailable", "detail": f"could not reach the air-quality API ({e})",
+                "advice": "Use the local monitoring agency's portal, or run the server on a machine with internet access."}
+    cur = data.get("current", {})
+    return {"status": "ok", "measured_at": cur.get("time"), "source": "Open-Meteo air-quality API (CAMS)",
+            "units": "ug/m3", "pm2_5": cur.get("pm2_5"), "pm10": cur.get("pm10"),
+            "no2": cur.get("nitrogen_dioxide"), "o3": cur.get("ozone"), "co": cur.get("carbon_monoxide"),
+            "dust": cur.get("dust")}
+
+
+def air_quality(city: str, live: bool = False) -> dict:
+    """Air-quality context for a host city: typical sources, June-July pattern, monitoring agency,
+    guideline levels, stored climatology (if the refresh script has been run) and, optionally, live values."""
+    key = resolve_venue(city)
+    aq = air_quality_data()
+    rec = aq["cities"][key]
+    v = venues()[key]
+    out = {"city": v["city"], "typical_sources": rec["typical_sources"],
+           "june_july_note": rec["june_july_note"],
+           "monitoring_agency": rec["monitoring"]["agency"]
+                                + ("" if rec["monitoring"]["verified"] else " (confirm that a monitoring network operates here)"),
+           "who_2021_guidelines_ug_m3": aq["guidelines_who_2021_ug_m3"],
+           "national_standards": "CONAMA Resolution 506/2024, staged (PI-2 from 1 Jan 2025); less strict than the WHO guideline levels.",
+           "climatology": (aq.get("climatology") or {}).get(key) or aq["_meta"]["climatology_status"],
+           "caveats": aq["_meta"]["caveats"],
+           "sources": [cite("WHO_AQG2021"), cite("CONAMA2024"), cite("Esh2026")],
+           "disclaimer": DISCLAIMER}
+    if live:
+        out["live"] = _live_air_quality(v["lat"], v["lon"])
+        if out["live"].get("status") == "ok" and out["live"].get("pm2_5") is not None:
+            out["live"]["planning_band"] = pm25_band(out["live"]["pm2_5"])
+    return out
+
+
+def respiratory_plan(pm2_5_ug_m3: float | None = None, athlete_has_asthma_or_eib: bool = False,
+                     city: str | None = None) -> dict:
+    """Planning advice for airway health: pollution band (if a concentration is given) plus
+    asthma/EIB screening, management and anti-doping points. No player-identifiable data."""
+    aq = air_quality_data()["asthma_eib"]
+    out = {"screening": aq["diagnosis"], "management": aq["management"],
+           "prevalence_note": aq["prevalence_note"],
+           "anti_doping_2026": aq["anti_doping_2026"],
+           "sources": [cite(r) for r in aq["refs"]], "disclaimer": DISCLAIMER}
+    if pm2_5_ug_m3 is not None:
+        out["pollution_band"] = pm25_band(pm2_5_ug_m3)
+    if city:
+        out["city_context"] = air_quality(city)
+    if athlete_has_asthma_or_eib:
+        out["for_athletes_with_airway_disease"] = [
+            "Confirm the diagnosis objectively and record the treatment plan before travel.",
+            "Pre-treat as prescribed; extend the warm-up before high-intensity work.",
+            "Check symptoms before and after sessions when air quality is elevated, and after cold, dry or wet exposure in the south.",
+            "Carry a reliever inhaler (and a spare) at every venue; confirm supplies in the medical kit.",
+            "Keep inhaled doses within the 2026 permitted limits and check whether a therapeutic use exemption is needed.",
+        ]
+    return out
 
 
 # ------------------------------------------------------------------ screening

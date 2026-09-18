@@ -38,6 +38,14 @@ ORACLE = {
     "B09": lambda: [min(core.venues(), key=lambda k: core.venue_profile(k)["months"]["july"]["indicative_swbgt_mean_c"])
                     .replace("porto_alegre", "Porto Alegre")],
     "B10": lambda: core.distance_km("Rio de Janeiro", "Sao Paulo"),
+    "B11": lambda: [core.pm25_band(30)["band"]],
+    "B12": lambda: sorted(core.venues()[k]["city"] for k in core.venues()
+                          if "CETESB" in core.air_quality(k)["monitoring_agency"]),
+    "B13": lambda: ["Brasilia"] if "dry" in core.air_quality("Brasilia")["june_july_note"].lower() else [],
+    "A21": lambda: core.air_quality("Sao Paulo")["who_2021_guidelines_ug_m3"]["pm2_5"]["24h"],
+    "A22": lambda: core.air_quality("Sao Paulo")["who_2021_guidelines_ug_m3"]["pm2_5"]["annual"],
+    "A23": lambda: core.respiratory_plan()["anti_doping_2026"]["permitted_inhaled_max_24h"]["salbutamol_ug"],
+    "A24": lambda: core.respiratory_plan()["anti_doping_2026"]["permitted_inhaled_max_24h"]["formoterol_ug"],
 }
 
 
