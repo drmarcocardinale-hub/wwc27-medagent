@@ -12,6 +12,34 @@ Three kinds of source are useful for a tournament, and they answer different que
 | | State agencies elsewhere | bulletins and reports | — | before travel | FEAM (MG) and FEPAM (RS) publish bulletins; confirm whether IBRAM (DF), INEMA (BA), CPRH (PE) and SEMACE (CE) run networks |
 | **3. Research baseline (citable)** | **BRAIN** (Hoinaski et al., *ESSD* 2024, doi:10.5194/essd-16-2385-2024) | modelled hourly air quality for all Brazil at 20 km (4 km in the south), validated against 244 stations | none | one-off | 2019 only; good for a published baseline, not for current conditions |
 
+## Better sources, found 18 September 2026
+
+The first authenticated probe showed that OpenAQ and WAQI between them cover two of the eight host cities. These were found while looking for something better. The short version: **the data exists, but almost none of it reaches the international aggregators.**
+
+| Source | Covers | Access | Verdict |
+|---|---|---|---|
+| **MonitorAr** — Sistema Nacional de Gestão da Qualidade do Ar (MMA) — [dataset](https://dados.mma.gov.br/dataset/ar-puro-monitorar), [live site](https://monitorar.mma.gov.br/) | National; aggregates the state agencies' official stations | Annual CSV/ZIP per year, 2022–2025, **CC BY**. Live site + phone app, no documented API | **Best available.** Reference-grade measurements for the tournament window. The download host is not on our egress allowlist, so it is a manual download — see below |
+| **Porto Alegre SMAMUS** — [dashboard](https://prefeitura.poa.br/qualidade-do-ar/) | Porto Alegre: 5 fixed + 1 mobile station, PM2.5, PM10, O₃, NO₂, SO₂, CO, since March 2025 | Real-time dashboard only; nothing in the city's [open-data portal](https://dadosabertos.poa.br/) | Fills a gap OpenAQ cannot. Needs a data request to SMAMUS, or scraping |
+| **ProAr BH** — [programme](https://prefeitura.pbh.gov.br/meio-ambiente/proar) | Belo Horizonte: municipal "hyperlocal" sensor network, IQAr per CONAMA 491/2018 and 506/2024 | Power BI dashboard; no open feed | Useful for situational awareness. Sensor grade unclear — treat as indicative, not reference |
+| **CETESB QUALAR** — [catalogue](https://cetesb.sp.gov.br/catalogo-de-dados-abertos/), [map](https://servicos.cetesb.sp.gov.br/qa) | São Paulo state, ~65 stations | Free account; the [`qualR`](https://docs.ropensci.org/qualR/) R package and community scrapers automate it | The right answer for São Paulo, whose OpenAQ feed stopped in April 2023 |
+| **IBRAM (DF)** — [reports](https://www.ibram.df.gov.br/programa-de-monitoramento-da-qualidade-do-ar-do-df/) | Brasília | Monthly PDF reports | Too coarse and too slow for operational use; fine as background |
+| **CPRH (PE)**, **SEMACE (CE)**, **INEMA (BA)** | Recife, Fortaleza, Salvador | Agency pages, mostly bulletins | Confirm station lists directly with each agency before the tournament |
+| **IQAir / AirVisual** — [API docs](https://api-docs.iqair.com/) | Has city pages for Brasília, Recife and Fortaleza | Free key; `/nearest_city` on the free tier, `/nearest_station` needs a paid plan. Returns µg/m³ and US AQI | A practical fallback for a team's own use. Check the licence before redistributing values in an openly licensed repository |
+
+### Using MonitorAr for a measured climatology
+
+This is the one change that materially improves the article: it replaces modelled grid values with real instruments for the tournament window.
+
+```bash
+# 1. Download the yearly files by hand from
+#    https://dados.mma.gov.br/dataset/ar-puro-monitorar   (2022-2025, CC BY)
+# 2. Put them in one folder, then:
+python scripts/build_monitorar_climatology.py --inspect data/monitorar   # confirm the schema
+python scripts/build_monitorar_climatology.py data/monitorar             # build
+```
+
+It pools 1 June – 31 July across years per host city and writes `climatology_stations` into `air_quality.json`, keeping the modelled CAMS `climatology` separately so the provenance of each number stays explicit. Cite MonitorAr and the MMA.
+
 ## What is wired into this repository
 
 `scripts/pull_air_quality.py` handles sources 1, 1b and 1c and normalises them into one record shape.
