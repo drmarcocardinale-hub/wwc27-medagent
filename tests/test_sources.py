@@ -1,6 +1,7 @@
 """Source adapters: response parsing, normalisation and failure handling.
 All tests run offline; HTTP is replaced with canned payloads."""
 import json
+from datetime import datetime, timezone
 
 import pytest
 
@@ -64,7 +65,7 @@ def test_openaq_latest_averages_stations(fake_http, monkeypatch):
     r = sources.openaq_latest("sao_paulo", -23.5, -46.6)
     assert r["kind"] == "station" and r["units"] == "ug/m3"
     assert r["values"]["pm2_5"] == 21.0 and r["values"]["o3"] == 64.0
-    assert r["detail"]["n_stations"] == 1 and "CETESB" not in r["values"]
+    assert r["detail"]["n_used"] == 1 and "CETESB" not in r["values"]
     assert any("coordinates=-23.5" in u for u in fake_http)
 
 
@@ -259,3 +260,87 @@ def test_transient_failure_is_retried_once(monkeypatch):
     with pytest.raises(OSError):
         sources._get("https://example.invalid/x")
     assert state["n"] == 2, "the request should have been attempted twice"
+
+
+# ------------------------------------- regression: live probe, 18 Sep 2026 (real API responses)
+
+def _loc(name, provider, sensors, last, lat=-23.55, lon=-46.63):
+    return {"id": abs(hash(name)) % 10000, "name": name, "provider": {"name": provider},
+            "coordinates": {"latitude": lat, "longitude": lon},
+            "sensors": [{"id": i, "parameter": {"name": p}} for i, p in enumerate(sensors, 1)],
+            "datetimeLast": {"utc": last}}
+
+
+def test_abandoned_station_feed_is_not_reported_as_current_air_quality(monkeypatch):
+    """The CETESB stations around Sao Paulo last reached OpenAQ on 2026-04-05... of 2023.
+
+    /latest still returns those final measurements, so without an age check a three-year-old
+    reading is averaged and presented as today's PM2.5 for the largest host city.
+    """
+    locations = {"results": [_loc("Itaim Paulista", "Sao Paulo CETESB",
+                                  ["no2", "o3", "pm10", "pm25"], "2023-04-05T20:00:00Z")]}
+    latest = {"results": [{"sensorsId": 4, "value": 88.0,
+                           "datetime": {"utc": "2023-04-05T20:00:00Z"}}]}
+    monkeypatch.setattr(sources, "_get",
+                        lambda url, **kw: latest if "/latest" in url else locations)
+
+    rec = sources.openaq_latest("sao_paulo", -23.55, -46.63, api_key="k")
+    assert rec["values"] == {}, "a 2023 reading must not become today's value"
+    assert rec["status"] == "all_stale"
+    assert rec["detail"]["n_stale"] == 1
+    assert rec["detail"]["stations_stale"][0]["name"] == "Itaim Paulista"
+
+
+def test_current_station_is_used_and_graded(monkeypatch):
+    """Rio's Presidente Vargas reported within the hour and measures PM2.5."""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    locations = {"results": [_loc("Presidente Vargas", "Rio City Hall", ["pm10", "pm25"], now,
+                                  -22.906, -43.176)]}
+    latest = {"results": [{"sensorsId": 2, "value": 11.2, "datetime": {"utc": now}}]}
+    monkeypatch.setattr(sources, "_get",
+                        lambda url, **kw: latest if "/latest" in url else locations)
+
+    rec = sources.openaq_latest("rio_de_janeiro", -22.9068, -43.1729, api_key="k")
+    assert rec["values"]["pm2_5"] == 11.2
+    assert rec["status"] is None
+    assert rec["detail"]["stations_used"][0]["grade"] == "reference"
+
+
+def test_low_cost_only_coverage_is_flagged(monkeypatch):
+    """Salvador's only station is an AirGradient unit; Fortaleza's is a HabitatMap test device.
+
+    Low-cost sensors are usable for trend but are not reference instruments, so a venue covered
+    only by one must not look equivalent to a government network.
+    """
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    locations = {"results": [_loc("Parque Vida Nova, Caji", "AirGradient", ["pm1", "pm25"], now,
+                                  -12.90, -38.40)]}
+    latest = {"results": [{"sensorsId": 2, "value": 6.3, "datetime": {"utc": now}}]}
+    monkeypatch.setattr(sources, "_get",
+                        lambda url, **kw: latest if "/latest" in url else locations)
+
+    rec = sources.openaq_latest("salvador", -12.9777, -38.5016, api_key="k")
+    assert rec["values"]["pm2_5"] == 6.3
+    assert rec["status"] == "low_cost_only"
+    assert sources.provider_grade("HabitatMap") == "low_cost"
+    assert sources.provider_grade("Sao Paulo CETESB") == "reference"
+    assert sources.provider_grade(None) == "unknown"
+
+
+def test_station_that_never_reported_is_excluded(monkeypatch):
+    """Fortaleza's '211004_teste_modo_fixo' (HabitatMap) has last=None - a test device."""
+    locations = {"results": [_loc("211004_teste_modo_fixo", "HabitatMap", ["pm25"], None)]}
+    monkeypatch.setattr(sources, "_get", lambda url, **kw: locations)
+    rec = sources.openaq_latest("fortaleza", -3.7319, -38.5267, api_key="k")
+    assert rec["values"] == {}
+    assert rec["status"] == "all_stale"
+
+
+def test_waqi_distances_from_the_live_probe_are_all_rejected_except_sao_paulo():
+    """Seven of eight venues were served a station 200-1800 km away."""
+    cases = [("rio", -22.9068, -43.1729, -22.816, -45.192, True),
+             ("sao_paulo", -23.5505, -46.6333, -23.540, -46.455, False),
+             ("fortaleza", -3.7319, -38.5267, 4.846, -52.331, True)]   # French Guiana
+    for name, vlat, vlon, slat, slon, should_reject in cases:
+        km = sources.haversine_km(vlat, vlon, slat, slon)
+        assert (km > 50) is should_reject, f"{name}: {km} km"

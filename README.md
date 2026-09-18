@@ -1,7 +1,7 @@
 # WWC27-MedAgent
 
 [![tests](https://github.com/drmarcocardinale-hub/wwc27-medagent/actions/workflows/tests.yml/badge.svg)](https://github.com/drmarcocardinale-hub/wwc27-medagent/actions/workflows/tests.yml)
-<!-- Add the Zenodo DOI badge here after the first release -->
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22832165.svg)](https://doi.org/10.5281/zenodo.22832165)
 
 WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine and Science Considerations to Maximise Preparation for the FIFA Women's World Cup Brazil 2027: From Static Evidence to a Living Agent"* (Cardinale & Geertsema; submitted to *Sports Medicine*). It follows the Paper2Agent model (Miao et al., *Nature* 2026, doi:10.1038/s41586-026-11044-y). The article's tables, decision tools and evidence base are packaged as a **Model Context Protocol (MCP) server**, so any MCP-compatible AI assistant can answer practitioners' questions from them in plain language, with sources.
 
@@ -27,7 +27,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ```bash
 git clone https://github.com/drmarcocardinale-hub/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
-pytest -q                          # 71 tests: source values, computations, refusal, MCP registration, benchmark integrity
+pytest -q                          # 76 tests: source values, computations, refusal, MCP registration, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check
 ```
 
@@ -75,11 +75,35 @@ python scripts/pull_air_quality.py --sources openmeteo           # no keys neede
 python scripts/pull_air_quality.py --mode climatology --years 3  # June–July history -> air_quality.json
 ```
 
+### What open station data actually covers (probed 18 September 2026)
+
+Running `--mode probe` against the live APIs gave a blunt answer: **open station data cannot monitor most host cities.**
+
+| City | OpenAQ stations (50 km) | Current PM2.5? | Nearest WAQI station |
+|---|---|---|---|
+| Rio de Janeiro | 20 | **Yes** — reference-grade | 207 km ✗ |
+| São Paulo | 20 (CETESB) | No — feed stops 5 Apr 2023 | 18 km ✓ |
+| Brasília | 0 | No | 580 km ✗ |
+| Belo Horizonte | 0 | No | 348 km ✗ |
+| Porto Alegre | 0 | No | 814 km ✗ |
+| Salvador | 1 (AirGradient) | Low-cost sensor only | 832 km ✗ |
+| Recife | 0 | No | 1477 km ✗ |
+| Fortaleza | 1 (test device, never reported) | No | 1806 km ✗ |
+
+Only Rio has current reference-grade PM2.5 in OpenAQ. São Paulo's CETESB network is indexed but its readings stopped in April 2023, so current CETESB data must come from QUALAR or WAQI. WAQI's `geo:` lookup returns the nearest station at *any* distance — Fortaleza was served a station in French Guiana — so stations beyond 50 km are rejected rather than reported.
+
+The practical consequence: **modelled CAMS values (Open-Meteo) are the only source covering all eight venues**, and a portable monitor at the training site is the only way to characterise a specific pitch. Coverage changes; re-run the probe before relying on it.
+
 `.github/workflows/air-quality.yml` runs the snapshot twice a day (06:10 and 17:10 Brazil time) and commits the readings, so the archive builds itself. Add `OPENAQ_API_KEY` and `WAQI_TOKEN` as repository secrets to include the station sources. Failed pulls are recorded with their reason instead of being dropped. [`docs/air_quality_sources.md`](docs/air_quality_sources.md) compares these with the Brazilian reference datasets (IEMA, CETESB QUALAR, MonitorAr, BRAIN) and explains how to read the numbers.
 
 ## Archiving and citation
 
-The code is on GitHub, and each release is archived on Zenodo with its own DOI (see [`RELEASING.md`](RELEASING.md)). Cite the article and the specific release you used (`CITATION.cff`). The Zenodo *concept DOI* always resolves to the newest version.
+The code is on GitHub, and each release is archived on Zenodo with its own DOI (see [`RELEASING.md`](RELEASING.md)). Cite the article and the specific release you used (`CITATION.cff`).
+
+| DOI | Points to |
+|---|---|
+| [10.5281/zenodo.22832165](https://doi.org/10.5281/zenodo.22832165) | **Concept DOI** — always resolves to the newest version. Cite this when you mean "the living resource". |
+| [10.5281/zenodo.22832166](https://doi.org/10.5281/zenodo.22832166) | **Version DOI** for v0.3.2, the release archived at manuscript submission. Cite this to pin exactly what you used. |
 
 ## Living-mode curation
 

@@ -80,12 +80,27 @@ def do_probe(args) -> int:
             if idx.get("status") == "error":
                 print(f"  openaq: {idx['detail']}")
             else:
-                print(f"  openaq: {len(idx['locations'])} station(s) within {args.radius/1000:.0f} km")
+                fresh = [l for l in idx["locations"]
+                         if (sources._age_hours(l.get("last")) or 1e9) <= 24]
+                pm25 = [l for l in fresh if any(s["parameter"] in ("pm25", "pm2_5")
+                                                for s in l["sensors"])]
+                print(f"  openaq: {len(idx['locations'])} station(s), {len(fresh)} reporting in the "
+                      f"last 24 h, {len(pm25)} of those measuring PM2.5")
                 for loc in idx["locations"][:5]:
-                    print(f"    - {loc['name']} ({loc['provider']}) {','.join(s['parameter'] for s in loc['sensors'] if s['parameter'])} {loc['distance_km']}km last={loc['last']}")
+                    age = sources._age_hours(loc.get("last"))
+                    when = "never" if age is None else (
+                        f"{age:.0f}h ago" if age < 72 else f"STALE {age/24:.0f}d")
+                    print(f"    - {loc['name']} ({loc['provider']}, {loc['grade']}) "
+                          f"{','.join(s['parameter'] for s in loc['sensors'] if s['parameter'])} "
+                          f"{loc['distance_km']}km {when}")
         if "waqi" in args.sources:
             w = sources.waqi_nearest(key, v["lat"], v["lon"], timeout=args.timeout)
-            print(f"  waqi: {w.get('detail', {}).get('station') or w.get('detail') or w.get('status')}")
+            d = w.get("detail") or {}
+            if isinstance(d, dict) and d.get("station"):
+                km, verdict = d.get("station_km"), w.get("status") or "usable"
+                print(f"  waqi: {d['station']} — {km} km — {verdict}")
+            else:
+                print(f"  waqi: {d or w.get('status')}")
         if "openmeteo" in args.sources:
             m = sources.open_meteo_current(key, v["lat"], v["lon"], timeout=args.timeout)
             print(f"  openmeteo: {'ok' if m.get('status') != 'error' else m['detail']}")

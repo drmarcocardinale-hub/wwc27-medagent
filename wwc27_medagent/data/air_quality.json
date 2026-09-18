@@ -9,7 +9,8 @@
       "Reanalysis or satellite-derived values represent a grid cell, not the stadium or training ground; a roadside training pitch can be much worse than the city mean.",
       "Where a state network operates, its stations are the reference measurement; check the agency portal in the weeks before travel.",
       "Brazil's national standards are set by CONAMA Resolution 506/2024 and tighten in stages (PI-2 applies from 1 January 2025); they are less strict than the 2021 WHO guideline levels."
-    ]
+    ],
+    "station_coverage_status": "Open station coverage measured 2026-09-18 with scripts/pull_air_quality.py --mode probe (OpenAQ v3, 50 km search; WAQI nearest-station). Current reference-grade PM2.5 was available for 1 of 8 host cities (Rio de Janeiro). WAQI's nearest station was within 50 km for Sao Paulo only; for the other seven it lay 207-1806 km away and is rejected. Modelled CAMS values (Open-Meteo) were available for all eight. Coverage changes, so re-run the probe before use."
   },
   "guidelines_who_2021_ug_m3": {
     "pm2_5": {
@@ -91,7 +92,16 @@
         "agency": "INEA (Rio de Janeiro state) / MonitorAr-Rio (city)",
         "verified": true
       },
-      "table_label": "Traffic; usually well ventilated"
+      "table_label": "Traffic; usually well ventilated",
+      "station_coverage": {
+        "openaq_stations": 20,
+        "openaq_current_pm25": true,
+        "grade": "reference",
+        "network": "Rio City Hall / MonitorAr",
+        "note": "The only host city with current reference-grade PM2.5 in open station data (Presidente Vargas, Campo de Santana; ~4 km from the centre).",
+        "waqi_nearest_station_km": 207,
+        "waqi_usable": false
+      }
     },
     "sao_paulo": {
       "typical_sources": "The largest vehicle fleet in South America; traffic-related PM and NO2 dominate",
@@ -100,7 +110,16 @@
         "agency": "CETESB (São Paulo state)",
         "verified": true
       },
-      "table_label": "Traffic; winter inversions (worst period)"
+      "table_label": "Traffic; winter inversions (worst period)",
+      "station_coverage": {
+        "openaq_stations": 20,
+        "openaq_current_pm25": false,
+        "grade": "reference_but_stale",
+        "network": "CETESB",
+        "note": "Twenty CETESB stations are indexed but their last OpenAQ measurement is 5 April 2023. Current CETESB data must come from QUALAR or WAQI, not OpenAQ.",
+        "waqi_nearest_station_km": 18,
+        "waqi_usable": true
+      }
     },
     "brasilia": {
       "typical_sources": "Traffic; regional biomass burning during the dry season",
@@ -109,7 +128,16 @@
         "agency": "IBRAM (Federal District)",
         "verified": false
       },
-      "table_label": "Very dry air; dry-season smoke possible"
+      "table_label": "Very dry air; dry-season smoke possible",
+      "station_coverage": {
+        "openaq_stations": 0,
+        "openaq_current_pm25": false,
+        "grade": "none",
+        "network": "IBRAM (not published to OpenAQ)",
+        "note": "No station within 50 km in OpenAQ.",
+        "waqi_nearest_station_km": 580,
+        "waqi_usable": false
+      }
     },
     "belo_horizonte": {
       "typical_sources": "Traffic, with mining and industry in the metropolitan region",
@@ -118,7 +146,16 @@
         "agency": "FEAM/SISEMA (Minas Gerais) air quality bulletin",
         "verified": true
       },
-      "table_label": "Traffic and industry; dry, light winds"
+      "table_label": "Traffic and industry; dry, light winds",
+      "station_coverage": {
+        "openaq_stations": 0,
+        "openaq_current_pm25": false,
+        "grade": "none",
+        "network": "FEAM (not published to OpenAQ)",
+        "note": "No station within 50 km in OpenAQ.",
+        "waqi_nearest_station_km": 348,
+        "waqi_usable": false
+      }
     },
     "porto_alegre": {
       "typical_sources": "Traffic and regional industry",
@@ -127,7 +164,16 @@
         "agency": "FEPAM (Rio Grande do Sul) air quality reports",
         "verified": true
       },
-      "table_label": "Well dispersed; cold, damp air"
+      "table_label": "Well dispersed; cold, damp air",
+      "station_coverage": {
+        "openaq_stations": 0,
+        "openaq_current_pm25": false,
+        "grade": "none",
+        "network": "FEPAM (not published to OpenAQ)",
+        "note": "No station within 50 km in OpenAQ.",
+        "waqi_nearest_station_km": 814,
+        "waqi_usable": false
+      }
     },
     "salvador": {
       "typical_sources": "Traffic; port and industrial activity in the metropolitan region",
@@ -136,7 +182,16 @@
         "agency": "INEMA (Bahia)",
         "verified": false
       },
-      "table_label": "Sea breeze; wet, good dispersion"
+      "table_label": "Sea breeze; wet, good dispersion",
+      "station_coverage": {
+        "openaq_stations": 1,
+        "openaq_current_pm25": true,
+        "grade": "low_cost",
+        "network": "AirGradient (community sensor)",
+        "note": "A single low-cost sensor 21.6 km from the centre. Usable for trend, not a reference instrument.",
+        "waqi_nearest_station_km": 832,
+        "waqi_usable": false
+      }
     },
     "recife": {
       "typical_sources": "Traffic and port activity",
@@ -145,7 +200,16 @@
         "agency": "CPRH (Pernambuco)",
         "verified": false
       },
-      "table_label": "Sea breeze; wettest months"
+      "table_label": "Sea breeze; wettest months",
+      "station_coverage": {
+        "openaq_stations": 0,
+        "openaq_current_pm25": false,
+        "grade": "none",
+        "network": "CPRH (not published to OpenAQ)",
+        "note": "No station within 50 km in OpenAQ.",
+        "waqi_nearest_station_km": 1477,
+        "waqi_usable": false
+      }
     },
     "fortaleza": {
       "typical_sources": "Traffic; port and industrial complex to the west of the city",
@@ -154,7 +218,16 @@
         "agency": "SEMACE (Ceará)",
         "verified": false
       },
-      "table_label": "Trade winds; good ventilation"
+      "table_label": "Trade winds; good ventilation",
+      "station_coverage": {
+        "openaq_stations": 1,
+        "openaq_current_pm25": false,
+        "grade": "none",
+        "network": "HabitatMap (test device)",
+        "note": "The only indexed station is a test device that has never reported a measurement.",
+        "waqi_nearest_station_km": 1806,
+        "waqi_usable": false
+      }
     }
   },
   "climatology": null

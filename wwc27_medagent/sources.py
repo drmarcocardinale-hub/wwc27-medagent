@@ -59,6 +59,32 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _age_hours(iso: str | None) -> float | None:
+    """Hours since an ISO timestamp, or None if it is missing or unparseable."""
+    if not iso:
+        return None
+    try:
+        t = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - t).total_seconds() / 3600.0
+
+
+# Community/low-cost sensor networks. Useful for trend, but not reference-grade instruments:
+# they need correction factors and should not be read against guideline levels uncritically.
+LOW_COST_PROVIDERS = {"airgradient", "habitatmap", "purpleair", "sensor.community",
+                      "sensorcommunity", "clarity", "iqair", "airbeam"}
+
+
+def provider_grade(provider: str | None) -> str:
+    p = str(provider or "").strip().lower()
+    if not p:
+        return "unknown"
+    return "low_cost" if any(k in p for k in LOW_COST_PROVIDERS) else "reference"
+
+
 def _get(url: str, headers: dict[str, str] | None = None, timeout: float = 30.0,
          retries: int = 1, backoff: float = 2.0) -> Any:
     """GET and parse JSON, retrying once on a transient failure.
@@ -192,6 +218,7 @@ def openaq_locations(venue: str, lat: float, lon: float, radius_m: int = 50000,
             "distance_km": (haversine_km(lat, lon, slat, slon)
                             if isinstance(slat, (int, float)) and isinstance(slon, (int, float))
                             else None),
+            "grade": provider_grade((r.get("provider") or {}).get("name")),
             "last": (r.get("datetimeLast") or {}).get("utc")})
     locs.sort(key=lambda l: (l["distance_km"] is None, l["distance_km"]))
     return {"source": "openaq", "venue": venue, "retrieved_at": _now(), "kind": "station_index",
@@ -200,20 +227,32 @@ def openaq_locations(venue: str, lat: float, lon: float, radius_m: int = 50000,
 
 
 def openaq_latest(venue: str, lat: float, lon: float, radius_m: int = 50000,
-                  api_key: str | None = None, timeout: float = 30.0) -> dict:
-    """Latest station values near the venue, averaged across stations per pollutant."""
+                  api_key: str | None = None, timeout: float = 30.0,
+                  max_age_hours: float = 24.0) -> dict:
+    """Latest station values near the venue, averaged across stations per pollutant.
+
+    Only readings newer than `max_age_hours` are used. A station that stopped publishing still
+    answers /latest with its final measurement, so without this an abandoned feed is reported as
+    current air quality: the CETESB stations around Sao Paulo last reached OpenAQ in April 2023.
+    """
     key = api_key or os.environ.get("OPENAQ_API_KEY")
     idx = openaq_locations(venue, lat, lon, radius_m, key, timeout=timeout)
     if idx.get("status") == "error":
         return idx
+    base = {"source": "openaq", "venue": venue, "retrieved_at": _now(), "kind": "station",
+            "units": "ug/m3", "attribution": ATTRIBUTION["openaq"]}
     if not idx["locations"]:
-        return {"source": "openaq", "venue": venue, "retrieved_at": _now(), "kind": "station",
-                "status": "no_stations", "units": "ug/m3", "values": {},
-                "detail": {"radius_m": radius_m},
-                "attribution": ATTRIBUTION["openaq"]}
+        return {**base, "status": "no_stations", "values": {},
+                "detail": {"radius_m": radius_m, "search": (idx.get("detail") or {}).get("search")}}
+
     buckets: dict[str, list[float]] = {p: [] for p in POLLUTANTS}
-    seen, latest_time, max_km = [], None, None
+    used, stale, latest_time, max_km, grades = [], [], None, None, set()
     for loc in idx["locations"]:
+        age = _age_hours(loc.get("last"))
+        if age is None or age > max_age_hours:
+            stale.append({"name": loc["name"], "last": loc.get("last"),
+                          "age_hours": None if age is None else round(age, 1)})
+            continue
         # /latest returns {sensorsId, value, datetime} with no parameter name, so resolve the
         # sensor ids from the station index. Without this every reading is silently dropped.
         sensor_param = {s["id"]: _canon(s["parameter"]) for s in loc.get("sensors", [])
@@ -223,25 +262,41 @@ def openaq_latest(venue: str, lat: float, lon: float, radius_m: int = 50000,
                         timeout=timeout)
         except (urllib.error.URLError, TimeoutError, OSError, ValueError):
             continue
-        seen.append(loc["name"])
-        if isinstance(loc.get("distance_km"), (int, float)):
-            max_km = max(max_km or 0, loc["distance_km"])
+        contributed = False
         for r in data.get("results", []):
             name = _canon(((r.get("parameter") or {}).get("name") if isinstance(r.get("parameter"), dict)
                            else r.get("parameter")) or sensor_param.get(r.get("sensorsId"), ""))
             val = r.get("value")
             t = (r.get("datetime") or {}).get("utc") if isinstance(r.get("datetime"), dict) else r.get("datetime")
+            r_age = _age_hours(t)
+            if r_age is not None and r_age > max_age_hours:
+                continue
             if name in buckets and isinstance(val, (int, float)):
                 buckets[name].append(float(val))
+                contributed = True
                 latest_time = max(filter(None, [latest_time, t])) if (latest_time or t) else None
+        if contributed:
+            used.append({"name": loc["name"], "provider": loc.get("provider"),
+                         "grade": loc.get("grade"), "distance_km": loc.get("distance_km")})
+            grades.add(loc.get("grade"))
+            if isinstance(loc.get("distance_km"), (int, float)):
+                max_km = max(max_km or 0, loc["distance_km"])
+
     values = {p: round(sum(v) / len(v), 1) for p, v in buckets.items() if v}
-    return {"source": "openaq", "venue": venue, "retrieved_at": _now(),
-            "observed_at": latest_time, "kind": "station", "units": "ug/m3", "values": values,
-            "status": None if values else "no_values",
-            "detail": {"stations": seen, "n_stations": len(seen), "radius_m": radius_m,
-                       "furthest_station_km": max_km, "search": (idx.get("detail") or {}).get("search"),
-                       "note": "mean across stations within the radius; station siting varies"},
-            "attribution": ATTRIBUTION["openaq"]}
+    if not values:
+        status = "all_stale" if stale else "no_values"
+    elif grades and grades <= {"low_cost"}:
+        status = "low_cost_only"
+    else:
+        status = None
+    return {**base, "observed_at": latest_time, "values": values, "status": status,
+            "detail": {"stations_used": used, "n_used": len(used),
+                       "stations_stale": stale[:10], "n_stale": len(stale),
+                       "radius_m": radius_m, "max_age_hours": max_age_hours,
+                       "furthest_station_km": max_km,
+                       "search": (idx.get("detail") or {}).get("search"),
+                       "note": "mean across current stations within the radius; station siting "
+                               "varies, and low-cost sensors are not reference-grade"}}
 
 
 # --------------------------------------------------------------------------- WAQI

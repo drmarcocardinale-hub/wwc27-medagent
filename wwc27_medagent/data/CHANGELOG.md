@@ -2,6 +2,15 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.3.3 — 2026-09-18
+Findings and fixes from the first authenticated OpenAQ probe of all eight host cities.
+
+- **Stale station feeds are no longer reported as current air quality.** A station that stops publishing still answers `/latest` with its final measurement. The CETESB stations around São Paulo last reached OpenAQ on 5 April 2023, and those three-year-old readings were being averaged and presented as today's PM2.5 for the largest host city. Readings older than 24 h (configurable) are now excluded, and the record reports which stations were used and which were skipped as stale.
+- **Low-cost sensors are distinguished from reference instruments.** Salvador's only station is a community AirGradient unit and Fortaleza's is a HabitatMap test device that has never reported. A venue covered only by low-cost sensors now returns `status: "low_cost_only"` instead of looking equivalent to a government network.
+- **Measured station coverage recorded per city** in `air_quality.json` (`station_coverage`), with the probe date: current reference-grade PM2.5 was available for 1 of 8 host cities; WAQI's nearest station was within 50 km for São Paulo only, lying 207–1806 km away for the other seven.
+- **Probe output is more useful**: station grade, age of the last reading, and the WAQI station's distance and verdict.
+- 76 automated tests; the new regression tests use the actual API responses from the 18 September probe.
+
 ## 0.3.2 — 2026-09-18
 Fixes found by the first live air-quality pull and the first CI run. No change to any published claim in the article.
 
