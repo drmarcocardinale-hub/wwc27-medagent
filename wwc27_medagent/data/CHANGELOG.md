@@ -2,6 +2,14 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.3.0 — 2026-09-18
+- Air-quality data sources wired in: `wwc27_medagent/sources.py` adapters for Open-Meteo (CAMS, no key), OpenAQ v3 (free key) and WAQI/aqicn (free token), normalised to one record shape with units, provenance and attribution.
+- `scripts/pull_air_quality.py` replaces `refresh_air_quality.py` (kept as a shim) and adds `snapshot`, `probe` and `climatology` modes, writing an append-only archive to `data/airq_archive/`.
+- `.github/workflows/air-quality.yml` pulls a daily snapshot and commits it; API keys come from repository secrets.
+- `get_air_quality(live=True)` now uses the configured sources (`AIRQ_SOURCES`, default Open-Meteo) and reports per-source failures.
+- `docs/air_quality_sources.md` compares the automatable sources with the Brazilian reference datasets (IEMA platform, CETESB QUALAR, MonitorAr, BRAIN).
+- 66 automated tests (source parsing and failure handling are tested offline with canned payloads).
+
 ## 0.2.0 — 2026-09-18
 - Air quality added: per-city profiles (typical sources, June–July pattern, monitoring agency), WHO 2021 guideline levels, Brazil's CONAMA 506/2024 staged standards, and author-defined PM2.5 planning bands for training and match decisions.
 - New tools: `get_air_quality` (optionally fetching current concentrations from the Open-Meteo/CAMS API when the host machine has internet access) and `plan_respiratory_care` (PM2.5 band plus asthma/EIB screening, management and 2026 anti-doping limits for inhaled beta-2 agonists).
@@ -22,6 +30,6 @@ Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Card
 - New peer-reviewed tournament surveillance or consensus statement relevant to a domain in Table 2.
 - FIFA schedule changes (kick-off times, venues) or heat-policy changes.
 - Public-health notices for host states (dengue, Oropouche, yellow fever, measles, respiratory viruses).
-- Air-quality updates: re-run scripts/refresh_air_quality.py, and check the state monitoring agencies and any WHO/CONAMA changes.
+- Air-quality updates: the daily workflow keeps the archive current; re-run `pull_air_quality.py --mode climatology` yearly, and check the state monitoring agencies and any WHO/CONAMA changes.
 - Annual anti-doping list changes (inhaled beta-2 agonist limits).
 - Monthly check from January 2027 and weekly from May 2027 until the final.

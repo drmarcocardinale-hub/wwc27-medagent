@@ -13,7 +13,7 @@ from functools import lru_cache
 from importlib import resources
 from typing import Any
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 DISCLAIMER = (
     "Decision support only. Outputs summarise published evidence and climate normals; "
@@ -204,29 +204,29 @@ def pm25_band(pm25_24h: float) -> dict:
     raise AssertionError
 
 
-def _live_air_quality(lat: float, lon: float, timeout: float = 10.0) -> dict:
-    """Current pollutant concentrations from the Open-Meteo air-quality API (CAMS).
+def _live_air_quality(lat: float, lon: float, timeout: float = 10.0, venue: str = "") -> dict:
+    """Current concentrations from the configured live sources (see wwc27_medagent.sources).
 
-    Requires internet access on the machine running the server. Returns a clear
-    status instead of raising when the network is unavailable."""
-    import json as _json
-    import urllib.error
-    import urllib.request
+    Default source is Open-Meteo (CAMS), which needs no key. Set AIRQ_SOURCES to a comma list
+    (e.g. "openmeteo,openaq,waqi") and the matching API keys to add station sources.
+    Never raises: an unreachable source comes back with status "error"."""
+    import os
 
-    url = (f"{OPEN_METEO_AQ}?latitude={lat:.3f}&longitude={lon:.3f}"
-           "&current=pm2_5,pm10,nitrogen_dioxide,ozone,carbon_monoxide,dust"
-           "&timezone=America%2FSao_Paulo")
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as fh:
-            data = _json.load(fh)
-    except (urllib.error.URLError, TimeoutError, OSError) as e:
-        return {"status": "unavailable", "detail": f"could not reach the air-quality API ({e})",
-                "advice": "Use the local monitoring agency's portal, or run the server on a machine with internet access."}
-    cur = data.get("current", {})
-    return {"status": "ok", "measured_at": cur.get("time"), "source": "Open-Meteo air-quality API (CAMS)",
-            "units": "ug/m3", "pm2_5": cur.get("pm2_5"), "pm10": cur.get("pm10"),
-            "no2": cur.get("nitrogen_dioxide"), "o3": cur.get("ozone"), "co": cur.get("carbon_monoxide"),
-            "dust": cur.get("dust")}
+    from . import sources as _sources
+
+    names = [s.strip() for s in os.environ.get("AIRQ_SOURCES", "openmeteo").split(",") if s.strip()]
+    recs = _sources.snapshot(venue, lat, lon, names, timeout=timeout)
+    ok = [r for r in recs if r.get("status") != "error" and (r.get("values") or {})]
+    if not ok:
+        return {"status": "unavailable",
+                "detail": [f"{r['source']}: {r.get('detail') or r.get('status')}" for r in recs],
+                "advice": "Run on a machine with internet access, or use the local monitoring "
+                          "agency's portal. Station sources need OPENAQ_API_KEY or WAQI_TOKEN."}
+    primary = ok[0]
+    return {"status": "ok", "measured_at": primary.get("observed_at"), "source": primary["source"],
+            "units": primary.get("units"), **primary.get("values", {}),
+            "detail": primary.get("detail"), "attribution": primary.get("attribution"),
+            "all_sources": recs}
 
 
 def air_quality(city: str, live: bool = False) -> dict:
@@ -247,8 +247,9 @@ def air_quality(city: str, live: bool = False) -> dict:
            "sources": [cite("WHO_AQG2021"), cite("CONAMA2024"), cite("Esh2026")],
            "disclaimer": DISCLAIMER}
     if live:
-        out["live"] = _live_air_quality(v["lat"], v["lon"])
-        if out["live"].get("status") == "ok" and out["live"].get("pm2_5") is not None:
+        out["live"] = _live_air_quality(v["lat"], v["lon"], venue=key)
+        if out["live"].get("status") == "ok" and out["live"].get("pm2_5") is not None \
+                and out["live"].get("units") == "ug/m3":
             out["live"]["planning_band"] = pm25_band(out["live"]["pm2_5"])
     return out
 

@@ -34,5 +34,10 @@ This takes about 20 minutes the first time. Afterwards, every GitHub release get
 - Each release gets its own version DOI. The concept DOI in the article always points to the newest one.
 - Upload end-to-end benchmark outputs (`benchmark/results/`) as release assets so the evaluation can be reproduced.
 
-## 5. Optional remote hosting
+## 5. Turn on the daily air-quality pull
+1. After the first push, open **Actions** and enable workflows if GitHub asks.
+2. Optional: add `OPENAQ_API_KEY` and `WAQI_TOKEN` under **Settings → Secrets and variables → Actions** to include station sources (Open-Meteo works without any key).
+3. The `air-quality pull` workflow then runs daily and commits new readings to `wwc27_medagent/data/airq_archive/`. Use **Run workflow** to trigger `probe` (what each source can see) or `climatology` (June–July history) by hand.
+
+## 6. Optional remote hosting
 Some teams will want to connect without installing Python. For them, the included `Dockerfile` runs the server over HTTP (for example as a Hugging Face Space or on an institutional server). GitHub and Zenodo remain the archive of record.

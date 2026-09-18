@@ -1,0 +1,55 @@
+name: air-quality pull
+
+# Pulls a reading for each host city and commits it to the archive.
+# Open-Meteo needs no key. Add OPENAQ_API_KEY and WAQI_TOKEN as repository secrets
+# (Settings -> Secrets and variables -> Actions) to include station sources.
+# Run it by hand from the Actions tab with "Run workflow" (choose the mode).
+
+on:
+  schedule:
+    - cron: "10 9 * * *"      # 09:10 UTC = 06:10 in Brazil (UTC-3), daily
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "snapshot, probe or climatology"
+        default: snapshot
+        type: choice
+        options: [snapshot, probe, climatology]
+      sources:
+        description: "comma list of sources"
+        default: openmeteo,openaq,waqi
+
+permissions:
+  contents: write
+
+concurrency:
+  group: air-quality
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Pull air quality
+        env:
+          OPENAQ_API_KEY: ${{ secrets.OPENAQ_API_KEY }}
+          WAQI_TOKEN: ${{ secrets.WAQI_TOKEN }}
+        run: |
+          python scripts/pull_air_quality.py \
+            --mode "${{ inputs.mode || 'snapshot' }}" \
+            --sources "${{ inputs.sources || 'openmeteo,openaq,waqi' }}" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true   # a failed pull is recorded in the archive, not a red build
+      - name: Commit new readings
+        run: |
+          git config user.name "wwc27-medagent bot"
+          git config user.email "actions@github.com"
+          git add wwc27_medagent/data/airq_archive wwc27_medagent/data/air_quality.json
+          git diff --staged --quiet && { echo "no change"; exit 0; }
+          git commit -m "air quality: automated pull $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
