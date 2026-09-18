@@ -32,6 +32,20 @@ pytest -q                          # 91 tests: source values, computations, refu
 python benchmark/run_tool_check.py # tool-layer benchmark check
 ```
 
+## Where to use it
+
+| | Link | Needs |
+|---|---|---|
+| **Read the tables in a browser** | <https://drmarcocardinale-hub.github.io/wwc27-medagent/> | nothing |
+| **Use it as an AI agent, hosted** | `https://OWNER-wwc27-medagent.hf.space/mcp` | an MCP client |
+| **Run it locally** | `pip install -e .` then the config below | Python 3.10+ |
+| **See what it answers, no client** | `python scripts/demo.py` | Python 3.10+ |
+
+The GitHub Pages site (`scripts/build_site.py` &rarr; `docs/`) is generated from the same JSON the
+agent serves, and the venue table's simplified WBGT is computed by `core` at build time so the
+page and the agent can never disagree. The hosted endpoint is assembled by
+`scripts/make_space.py`; see that file for the one-off setup.
+
 ## Connect to Claude
 
 **Claude Desktop / Cowork:** add this to `claude_desktop_config.json`:

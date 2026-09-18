@@ -9,3 +9,6 @@ benchmark/results/responses_mock_*
 # MonitorAr source archives: downloaded by hand, large, and re-derivable from the portal.
 # Only the derived climatology in air_quality.json belongs in the repository.
 data/monitorar/
+
+# Assembled Hugging Face Space bundle (regenerate with scripts/make_space.py)
+build/

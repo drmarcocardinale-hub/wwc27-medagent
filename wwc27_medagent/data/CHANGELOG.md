@@ -2,6 +2,14 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.5.0 — 2026-09-18
+Deployment: the agent and its content are now reachable without installing anything.
+
+- **Reader site** (`scripts/build_site.py` → `docs/`, GitHub Pages): host-city table, the eleven-domain screening matrix, all 39 evidence items with searchable source links, air-quality profiles with measured station coverage, and the 49 references — as one self-contained page with no CDN, no fonts and no build step, so it works offline and cannot be broken by a third party. The venue table's simplified WBGT and heat bands are computed by `core` at build time rather than re-implemented in JavaScript, so the page, the agent and the manuscript cannot diverge.
+- **Hosted endpoint** (`scripts/make_space.py`): assembles a Hugging Face Docker Space serving the MCP server over streamable HTTP, so practitioners can connect an AI client to a URL instead of installing Python. Verified locally: the MCP initialize handshake completes over HTTP.
+- **`scripts/demo.py`**: runs a realistic scenario (base in São Paulo, fixtures in Fortaleza, Recife and Porto Alegre) through every tool and prints the answers, including the deliberate out-of-scope refusal. No keys, no client, no network.
+- Neither addition changes any published value.
+
 ## 0.4.1 — 2026-09-18
 IQAir's free tier turned out not to be obtainable, so the gap cities needed a different answer.
 

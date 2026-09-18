@@ -1,0 +1,154 @@
+[
+ {
+  "key": "rio_de_janeiro",
+  "city": "Rio de Janeiro",
+  "stadium": "Estadio do Maracana",
+  "elevation_m": 11,
+  "yellow_fever": "recommended",
+  "june": {
+   "tmax": 26.7,
+   "rh": 79.0,
+   "swbgt_at_daily_max": 29.9,
+   "band": "high"
+  },
+  "july": {
+   "tmax": 26.4,
+   "rh": 77.0,
+   "swbgt_at_daily_max": 29.3,
+   "band": "high"
+  }
+ },
+ {
+  "key": "sao_paulo",
+  "city": "Sao Paulo",
+  "stadium": "Neo Quimica Arena",
+  "elevation_m": 785,
+  "yellow_fever": "recommended",
+  "june": {
+   "tmax": 22.9,
+   "rh": 73.5,
+   "swbgt_at_daily_max": 25.0,
+   "band": "moderate"
+  },
+  "july": {
+   "tmax": 22.9,
+   "rh": 70.8,
+   "swbgt_at_daily_max": 24.7,
+   "band": "moderate"
+  }
+ },
+ {
+  "key": "brasilia",
+  "city": "Brasilia",
+  "stadium": "Arena BRB Mane Garrincha",
+  "elevation_m": 1172,
+  "yellow_fever": "recommended",
+  "june": {
+   "tmax": 25.3,
+   "rh": 58.8,
+   "swbgt_at_daily_max": 25.7,
+   "band": "moderate"
+  },
+  "july": {
+   "tmax": 25.6,
+   "rh": 51.0,
+   "swbgt_at_daily_max": 25.0,
+   "band": "moderate"
+  }
+ },
+ {
+  "key": "belo_horizonte",
+  "city": "Belo Horizonte",
+  "stadium": "Estadio Mineirao",
+  "elevation_m": 852,
+  "yellow_fever": "recommended (Minas Gerais)",
+  "june": {
+   "tmax": 24.9,
+   "rh": 62.6,
+   "swbgt_at_daily_max": 25.8,
+   "band": "moderate"
+  },
+  "july": {
+   "tmax": 24.9,
+   "rh": 58.4,
+   "swbgt_at_daily_max": 25.3,
+   "band": "moderate"
+  }
+ },
+ {
+  "key": "porto_alegre",
+  "city": "Porto Alegre",
+  "stadium": "Estadio Beira-Rio",
+  "elevation_m": 10,
+  "yellow_fever": "recommended (Rio Grande do Sul)",
+  "june": {
+   "tmax": 20.3,
+   "rh": 82.8,
+   "swbgt_at_daily_max": 23.2,
+   "band": "moderate"
+  },
+  "july": {
+   "tmax": 19.7,
+   "rh": 81.3,
+   "swbgt_at_daily_max": 22.4,
+   "band": "low"
+  }
+ },
+ {
+  "key": "salvador",
+  "city": "Salvador",
+  "stadium": "Arena Fonte Nova",
+  "elevation_m": 8,
+  "yellow_fever": "check: recommended only for designated areas of Bahia",
+  "june": {
+   "tmax": 27.1,
+   "rh": 84.9,
+   "swbgt_at_daily_max": 31.2,
+   "band": "high"
+  },
+  "july": {
+   "tmax": 26.6,
+   "rh": 83.4,
+   "swbgt_at_daily_max": 30.4,
+   "band": "high"
+  }
+ },
+ {
+  "key": "recife",
+  "city": "Recife",
+  "stadium": "Arena Pernambuco",
+  "elevation_m": 10,
+  "yellow_fever": "not recommended (Pernambuco)",
+  "june": {
+   "tmax": 28.5,
+   "rh": 84.6,
+   "swbgt_at_daily_max": 33.0,
+   "band": "very high"
+  },
+  "july": {
+   "tmax": 27.9,
+   "rh": 83.9,
+   "swbgt_at_daily_max": 32.1,
+   "band": "very high"
+  }
+ },
+ {
+  "key": "fortaleza",
+  "city": "Fortaleza",
+  "stadium": "Arena Castelao",
+  "elevation_m": 16,
+  "yellow_fever": "not recommended (Ceara)",
+  "june": {
+   "tmax": 30.5,
+   "rh": 79.9,
+   "swbgt_at_daily_max": 34.9,
+   "band": "very high"
+  },
+  "july": {
+   "tmax": 30.6,
+   "rh": 76.9,
+   "swbgt_at_daily_max": 34.5,
+   "band": "very high"
+  }
+ }
+]
