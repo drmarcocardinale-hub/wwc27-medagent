@@ -2,6 +2,10 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.3.1 — 2026-09-18
+- Air-quality workflow now runs twice a day (09:10 and 20:10 UTC = 06:10 and 17:10 in Brazil), covering morning training and evening sessions or kick-offs.
+- Step-by-step instructions for adding OPENAQ_API_KEY and WAQI_TOKEN as GitHub repository secrets (README, RELEASING.md, docs/air_quality_sources.md), plus a cron alternative.
+
 ## 0.3.0 — 2026-09-18
 - Air-quality data sources wired in: `wwc27_medagent/sources.py` adapters for Open-Meteo (CAMS, no key), OpenAQ v3 (free key) and WAQI/aqicn (free token), normalised to one record shape with units, provenance and attribution.
 - `scripts/pull_air_quality.py` replaces `refresh_air_quality.py` (kept as a shim) and adds `snapshot`, `probe` and `climatology` modes, writing an append-only archive to `data/airq_archive/`.
@@ -30,6 +34,6 @@ Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Card
 - New peer-reviewed tournament surveillance or consensus statement relevant to a domain in Table 2.
 - FIFA schedule changes (kick-off times, venues) or heat-policy changes.
 - Public-health notices for host states (dengue, Oropouche, yellow fever, measles, respiratory viruses).
-- Air-quality updates: the daily workflow keeps the archive current; re-run `pull_air_quality.py --mode climatology` yearly, and check the state monitoring agencies and any WHO/CONAMA changes.
+- Air-quality updates: the twice-daily workflow keeps the archive current; re-run `pull_air_quality.py --mode climatology` yearly, and check the state monitoring agencies and any WHO/CONAMA changes.
 - Annual anti-doping list changes (inhaled beta-2 agonist limits).
 - Monthly check from January 2027 and weekly from May 2027 until the final.

@@ -75,7 +75,7 @@ python scripts/pull_air_quality.py --sources openmeteo           # no keys neede
 python scripts/pull_air_quality.py --mode climatology --years 3  # June–July history -> air_quality.json
 ```
 
-`.github/workflows/air-quality.yml` runs the snapshot daily and commits the readings, so the archive builds itself. Failed pulls are recorded with their reason instead of being dropped. [`docs/air_quality_sources.md`](docs/air_quality_sources.md) compares these with the Brazilian reference datasets (IEMA, CETESB QUALAR, MonitorAr, BRAIN) and explains how to read the numbers.
+`.github/workflows/air-quality.yml` runs the snapshot twice a day (06:10 and 17:10 Brazil time) and commits the readings, so the archive builds itself. Add `OPENAQ_API_KEY` and `WAQI_TOKEN` as repository secrets to include the station sources. Failed pulls are recorded with their reason instead of being dropped. [`docs/air_quality_sources.md`](docs/air_quality_sources.md) compares these with the Brazilian reference datasets (IEMA, CETESB QUALAR, MonitorAr, BRAIN) and explains how to read the numbers.
 
 ## Archiving and citation
 

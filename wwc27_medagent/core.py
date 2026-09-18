@@ -13,7 +13,7 @@ from functools import lru_cache
 from importlib import resources
 from typing import Any
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 DISCLAIMER = (
     "Decision support only. Outputs summarise published evidence and climate normals; "

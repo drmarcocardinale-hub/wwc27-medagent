@@ -4,9 +4,9 @@ Three kinds of source are useful for a tournament, and they answer different que
 
 | | Source | What you get | Key | Cadence that makes sense | Caveat |
 |---|---|---|---|---|---|
-| **1. Operational (automated)** | **Open-Meteo air-quality API** (CAMS) | PM2.5, PM10, NO₂, O₃, CO, dust; hourly; history from 2013 and a 5-day forecast; every host city | none for non-commercial use | daily pull, plus a forecast check before each match | model grid values (~40 km globally), not a station; attribution to CAMS and Open-Meteo required |
-| **1b. Station data (automated)** | **OpenAQ v3** | measurements from official networks that publish openly, by station | free key, header `X-API-Key` ([register](https://explore.openaq.org/register)) | daily pull | coverage depends on what each agency publishes — run the `probe` mode first to see what exists near each venue |
-| **1c. Station data (automated)** | **WAQI / aqicn.org** | real-time station feeds, including CETESB's ~65 stations in São Paulo state | free token ([request](https://aqicn.org/data-platform/token/)) | daily pull | returns **AQI sub-indices, not µg/m³**; free tier is non-commercial and needs attribution to WAQI and the agency |
+| **1. Operational (automated)** | **Open-Meteo air-quality API** (CAMS) | PM2.5, PM10, NO₂, O₃, CO, dust; hourly; history from 2013 and a 5-day forecast; every host city | none for non-commercial use | twice-daily pull, plus a forecast check before each match | model grid values (~40 km globally), not a station; attribution to CAMS and Open-Meteo required |
+| **1b. Station data (automated)** | **OpenAQ v3** | measurements from official networks that publish openly, by station | free key, header `X-API-Key` ([register](https://explore.openaq.org/register)) | twice-daily pull | coverage depends on what each agency publishes — run the `probe` mode first to see what exists near each venue |
+| **1c. Station data (automated)** | **WAQI / aqicn.org** | real-time station feeds, including CETESB's ~65 stations in São Paulo state | free token ([request](https://aqicn.org/data-platform/token/)) | twice-daily pull | returns **AQI sub-indices, not µg/m³**; free tier is non-commercial and needs attribution to WAQI and the agency |
 | **2. Brazilian reference (manual)** | **IEMA "Plataforma da Qualidade do Ar"** | standardised historical data for 11 states + the Federal District — which covers all eight host states — from 2000, daily and annual | none | once, and again before submission | download per state (Google Drive), so not automatable; this is the dataset WHO uses for Brazil |
 | | **CETESB QUALAR** (São Paulo) and **MonitorAr** (Rio) | hourly station data at source | QUALAR needs a free account; MonitorAr is open | monthly, or when you need station-level evidence | the R package [`qualR`](https://docs.ropensci.org/qualR/) already wraps both |
 | | State agencies elsewhere | bulletins and reports | — | before travel | FEAM (MG) and FEPAM (RS) publish bulletins; confirm whether IBRAM (DF), INEMA (BA), CPRH (PE) and SEMACE (CE) run networks |
@@ -18,7 +18,7 @@ Three kinds of source are useful for a tournament, and they answer different que
 
 ```bash
 python scripts/pull_air_quality.py --mode probe                 # what can each source see near each venue?
-python scripts/pull_air_quality.py                              # daily snapshot, all sources
+python scripts/pull_air_quality.py                              # one snapshot now, all sources
 python scripts/pull_air_quality.py --sources openmeteo          # no keys needed
 python scripts/pull_air_quality.py --mode climatology --years 3 # June–July history -> air_quality.json
 ```
@@ -35,9 +35,27 @@ export AIRQ_SOURCES=openmeteo,openaq,waqi   # what get_air_quality(live=True) us
 
 ## Pulling regularly without running a server
 
-`.github/workflows/air-quality.yml` runs the snapshot every day at 09:10 UTC (06:10 in Brazil) and commits the new readings. Add `OPENAQ_API_KEY` and `WAQI_TOKEN` as repository secrets to include the station sources; without them the workflow still records Open-Meteo. You can also trigger it by hand from the Actions tab and choose the mode.
+`.github/workflows/air-quality.yml` runs the snapshot **twice a day** — 09:10 and 20:10 UTC, which is 06:10 and 17:10 in Brazil (UTC−3 all year) — and commits the new readings. The morning run informs the day's training; the late-afternoon run covers evening sessions and kick-offs. You can also trigger it by hand from the Actions tab and choose the mode.
 
-Alternatives if you would rather not use Actions: `cron` on any always-on machine (`10 6 * * * cd /path/to/wwc27-medagent && python scripts/pull_air_quality.py`), or a scheduled task in Claude that runs the same command.
+### Adding the API keys as repository secrets
+
+The workflow reads `OPENAQ_API_KEY` and `WAQI_TOKEN` from GitHub secrets. Without them it still records Open-Meteo, which needs no key.
+
+1. Get the keys: OpenAQ — register at <https://explore.openaq.org/register> and copy the key from your account page. WAQI — request a token at <https://aqicn.org/data-platform/token/> and confirm the email.
+2. In the GitHub repository, go to **Settings → Secrets and variables → Actions → New repository secret**.
+3. Name it exactly `OPENAQ_API_KEY`, paste the key into *Secret*, and click **Add secret**. Repeat for `WAQI_TOKEN`.
+4. Check it worked: **Actions → air-quality pull → Run workflow**, choose mode `probe`, and read the run summary. Station sources appear instead of "no OPENAQ_API_KEY set".
+
+Names are case-sensitive, and the values are write-only afterwards — GitHub will show the name but never the value, so store the keys in your password manager too. To change one later, open the secret and choose **Update**.
+
+### Alternatives to GitHub Actions
+
+- `cron` on any always-on machine, twice a day:
+  ```
+  10 6,17 * * * cd /path/to/wwc27-medagent && /usr/bin/python3 scripts/pull_air_quality.py >> pull.log 2>&1
+  ```
+  Put the keys in that machine's environment (for example in `~/.profile`, or as `OPENAQ_API_KEY=... WAQI_TOKEN=... ` at the start of the cron line).
+- A scheduled task in Claude that runs the same command.
 
 ## Reading the numbers
 
