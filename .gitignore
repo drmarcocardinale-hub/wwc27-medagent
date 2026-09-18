@@ -12,3 +12,8 @@ data/monitorar/
 
 # Assembled Hugging Face Space bundle (regenerate with scripts/make_space.py)
 build/
+
+# Google Cloud SDK, if its installer was pointed at this folder by mistake.
+# It belongs in your home directory, not in the repository.
+y/
+google-cloud-sdk/

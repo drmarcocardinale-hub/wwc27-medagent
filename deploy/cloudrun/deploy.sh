@@ -14,7 +14,32 @@ set -euo pipefail
 
 SERVICE="${SERVICE:-wwc27-medagent}"
 REGION="${REGION:-europe-west1}"
-PROJECT="${PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
+
+# Check for the CLI before anything else. Without this the script dies silently: `set -e` plus a
+# command substitution on a missing command exits before the friendly message can be printed.
+if ! command -v gcloud >/dev/null 2>&1; then
+  cat >&2 <<'MSG'
+gcloud is not installed (or not on PATH).
+
+Install it, then open a NEW terminal window so PATH picks it up:
+
+  Official installer (works on any Mac):
+      curl https://sdk.cloud.google.com | bash
+
+  Or with Homebrew, if you have it:
+      brew install --cask google-cloud-sdk
+
+Then:
+      gcloud init          # sign in and choose the project
+      bash deploy/cloudrun/deploy.sh
+
+If you have just installed it and this message persists, the PATH is not set for this shell:
+      exec -l $SHELL
+MSG
+  exit 127
+fi
+
+PROJECT="${PROJECT:-$(gcloud config get-value project 2>/dev/null || true)}"
 
 if [[ -z "${PROJECT}" || "${PROJECT}" == "(unset)" ]]; then
   echo "No project set. Run:  gcloud config set project YOUR_PROJECT_ID" >&2
