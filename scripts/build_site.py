@@ -28,6 +28,31 @@ FILES = ["venues.json", "screening.json", "evidence.json", "references.json", "a
 
 REPO = "https://github.com/drmarcocardinale-hub/wwc27-medagent"
 CONCEPT_DOI = "10.5281/zenodo.22832165"
+# Set this once the Hugging Face Space is live (scripts/make_space.py), then rebuild.
+HOSTED_MCP_URL = ""
+
+OPTION1_LIVE = """    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint (nothing to install)</h3>
+      <p style="font-size:.9rem;margin:0 0 8px">Paste this URL into your assistant's connector
+      settings:</p>
+      <p><code style="font-family:var(--mono);font-size:.85rem">{url}</code></p>
+      <p style="font-size:.85rem;color:var(--muted);margin:8px 0 0">
+      In <strong>Claude Desktop</strong>: Settings &rarr; Connectors &rarr; Add custom connector.
+      In <strong>Claude Code</strong>:
+      <code style="font-family:var(--mono)">claude mcp add --transport http wwc27-medagent {url}</code></p>
+      <p style="font-size:.82rem;color:var(--muted);margin:8px 0 0">The free host sleeps after a
+      couple of days idle, so the first question after a quiet spell takes a few seconds while it
+      wakes.</p>
+    </div>"""
+
+OPTION1_PENDING = """    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint
+        <span class="tag warn">not yet available</span></h3>
+      <p style="font-size:.9rem;margin:0">A hosted version, which would need nothing installed, is
+      not running yet. Until it is, use Option 2 below. This page will show the address here once
+      it is live.</p>
+    </div>"""
+
 
 HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -121,7 +146,7 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
   <div class="meta">
     <a class="pill" href="__REPO__">Code on GitHub</a>
     <a class="pill" href="https://doi.org/__DOI__">DOI __DOI__</a>
-    <a class="pill" href="__REPO__#connect-to-claude">Use it as an AI agent</a>
+    <a class="pill" href="#use" id="usePill">How to ask it questions</a>
     <span class="pill" id="built">built __BUILT__</span>
   </div>
   <div class="note"><strong>Decision support only.</strong> These pages summarise published
@@ -135,6 +160,7 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
   <button role="tab" aria-selected="false" data-tab="evidence">Evidence</button>
   <button role="tab" aria-selected="false" data-tab="air">Air quality</button>
   <button role="tab" aria-selected="false" data-tab="refs">References</button>
+  <button role="tab" aria-selected="false" data-tab="use">Ask it questions</button>
 </div></nav>
 
 <main><div class="wrap">
@@ -169,6 +195,58 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
     monitoring data actually exists there.</p>
     <div id="airGuides"></div>
     <div id="airCities"></div>
+  </section>
+
+  <section id="use" hidden>
+    <h2>Asking it questions</h2>
+    <p class="lede">This page is the reference tables. The question-and-answer part runs inside
+    your own AI assistant: you connect it to the agent once, then ask in plain language and it
+    answers from these same tables, with the source for each claim.</p>
+
+    <div class="note"><strong>There is no chat box on this page, by design.</strong> A static page
+    cannot run a language model, and hosting one openly would mean paying per question and
+    accepting whatever is typed into it. Connecting your own assistant keeps your questions —
+    and any patient or player detail — inside your own environment.</div>
+
+__OPTION1__
+
+    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 2 &middot; Run it on your own machine</h3>
+      <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px">Needs Python 3.10 or newer.
+      Keeps everything local.</p>
+      <pre style="font-family:var(--mono);font-size:.82rem;overflow-x:auto;background:var(--bg);
+        padding:10px 12px;border-radius:var(--radius);margin:0"><code>git clone __REPO__.git
+cd wwc27-medagent
+pip install -e .</code></pre>
+      <p style="font-size:.85rem;margin:8px 0 0">Then add to
+      <code style="font-family:var(--mono)">claude_desktop_config.json</code>:</p>
+      <pre style="font-family:var(--mono);font-size:.82rem;overflow-x:auto;background:var(--bg);
+        padding:10px 12px;border-radius:var(--radius);margin:6px 0 0"><code>{ "mcpServers": { "wwc27-medagent": { "command": "wwc27-medagent" } } }</code></pre>
+      <p style="font-size:.85rem;margin:8px 0 0">To see what it answers without any AI client at
+      all: <code style="font-family:var(--mono)">python scripts/demo.py</code></p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 3 &middot; No AI assistant</h3>
+      <p style="font-size:.9rem;margin:0">Use the tabs on this page. Everything the agent answers
+      from is here: the host-city table, the screening matrix, the evidence base and the
+      references. The agent adds convenience and plain-language answers, not extra content.</p>
+    </div>
+
+    <h3 style="font-size:1rem;margin:20px 0 6px">Questions it is built to answer</h3>
+    <div class="card">
+      <p style="margin:0 0 8px;font-size:.9rem"><em>&ldquo;We're based in S&atilde;o Paulo and play
+      in Fortaleza, Recife and Porto Alegre. Draft our pre-tournament medical plan.&rdquo;</em></p>
+      <p style="margin:0 0 8px;font-size:.9rem"><em>&ldquo;The Salvador forecast is 28&nbsp;&deg;C and
+      85% humidity and three starters are likely luteal. What's the heat band and what should we
+      do?&rdquo;</em></p>
+      <p style="margin:0 0 8px;font-size:.9rem"><em>&ldquo;What did the 2023 Women's World Cup show
+      about illness?&rdquo;</em></p>
+      <p style="margin:0;font-size:.85rem;color:var(--muted)">Ask it something outside its evidence
+      base &mdash; tactics, team selection, an unrelated condition &mdash; and it answers
+      &ldquo;I don't know&rdquo; rather than improvising. That refusal is deliberate and is part of
+      what the published validation benchmark measures.</p>
+    </div>
   </section>
 
   <section id="refs" hidden>
@@ -284,6 +362,12 @@ document.querySelectorAll("nav button").forEach(b => b.addEventListener("click",
 
 document.getElementById("evSearch").addEventListener("input", e => renderEvidence(e.target.value));
 
+document.getElementById("usePill").addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelector('nav button[data-tab="use"]').click();
+  window.scrollTo({top: 0, behavior: "smooth"});
+});
+
 Promise.all(files.map(f => fetch(`data/${f}.json`).then(r => r.json()).then(j => D[f] = j)))
   .then(() => {
     renderVenues(); renderScreening(); renderEvidence(""); renderAir(); renderRefs();
@@ -337,7 +421,9 @@ def main() -> int:
         json.loads((DOCS / "data" / f).read_text(encoding="utf-8"))   # fail loudly on bad JSON
     (DOCS / "data" / "venue_table.json").write_text(
         json.dumps(venue_rows(), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    html = (HTML.replace("__REPO__", REPO)
+    option1 = OPTION1_LIVE.format(url=HOSTED_MCP_URL) if HOSTED_MCP_URL else OPTION1_PENDING
+    html = (HTML.replace("__OPTION1__", option1)
+                .replace("__REPO__", REPO)
                 .replace("__DOI__", CONCEPT_DOI)
                 .replace("__BUILT__", date.today().isoformat()))
     (DOCS / "index.html").write_text(html, encoding="utf-8")
