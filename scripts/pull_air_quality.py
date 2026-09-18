@@ -7,7 +7,9 @@ Modes
                ("climatology" block, used by get_air_quality)  (run once, then yearly)
   probe        list the monitoring stations each source can see near each venue, and exit
 
-Sources: openmeteo (no key), openaq (OPENAQ_API_KEY), waqi (WAQI_TOKEN).
+Sources: openmeteo (no key), openaq (OPENAQ_API_KEY), waqi (WAQI_TOKEN), iqair (IQAIR_API_KEY).
+Several host cities publish only through their own agency portal; `--list-sources` shows those
+too, and `probe` names the best source for each venue.
 Missing keys and network failures are recorded in the output, not raised.
 
 Examples
@@ -15,6 +17,7 @@ Examples
   python scripts/pull_air_quality.py --sources openmeteo              # no keys needed
   python scripts/pull_air_quality.py --mode probe
   python scripts/pull_air_quality.py --mode climatology --years 3
+  python scripts/pull_air_quality.py --list-sources                    # everything, incl. manual
 """
 from __future__ import annotations
 
@@ -53,13 +56,17 @@ def do_snapshot(args) -> int:
             est = (rec.get("values_ugm3_est") or {}).get("pm2_5")
             if rec.get("units") == "aqi" and est is not None and not far:
                 rec["planning_band_est"] = core.pm25_band(est)["band"]
-            rows.append(rec)
+            if sources.may_redistribute(rec["source"]) or args.archive_all:
+                rows.append(rec)
+            else:
+                rec["_not_archived"] = "licence restricts redistribution"
             status = rec.get("status") or rec.get("planning_band") or rec.get("planning_band_est") or "ok"
             shown = f"{pm}" if rec.get("units") != "aqi" else f"AQI {pm} (~{est} ug/m3)"
             detail = rec.get("detail")
             km = detail.get("station_km") if isinstance(detail, dict) else None
             note = f"  station {km} km" if km is not None else ""
-            print(f"{v['city']:<15} {rec['source']:<10} pm2.5={shown:<24} {status}{note}")
+            flag = "" if sources.may_redistribute(rec["source"]) else "  [not archived: licence]"
+            print(f"{v['city']:<15} {rec['source']:<10} pm2.5={shown:<24} {status}{note}{flag}")
     month_file = ARCHIVE / f"{stamp:%Y-%m}.jsonl"
     with month_file.open("a", encoding="utf-8") as fh:
         for r in rows:
@@ -101,9 +108,20 @@ def do_probe(args) -> int:
                 print(f"  waqi: {d['station']} — {km} km — {verdict}")
             else:
                 print(f"  waqi: {d or w.get('status')}")
+        if "iqair" in args.sources:
+            q = sources.iqair_nearest_city(key, v["lat"], v["lon"], timeout=args.timeout)
+            qd = q.get("detail") or {}
+            if isinstance(qd, dict) and qd.get("city"):
+                print(f"  iqair: {qd['city']} - {qd.get('station_km')} km - "
+                      f"PM2.5 {(q.get('values') or {}).get('pm2_5')} ug/m3 - "
+                      f"{q.get('status') or 'usable'}")
+            else:
+                print(f"  iqair: {qd or q.get('status')}")
         if "openmeteo" in args.sources:
             m = sources.open_meteo_current(key, v["lat"], v["lon"], timeout=args.timeout)
             print(f"  openmeteo: {'ok' if m.get('status') != 'error' else m['detail']}")
+        print("  best source for this venue: "
+              + " > ".join(b["name"] for b in sources.best_sources(key)))
     return 0
 
 
@@ -158,13 +176,29 @@ def do_climatology(args) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--mode", choices=["snapshot", "climatology", "probe"], default="snapshot")
-    ap.add_argument("--sources", default="openmeteo,openaq,waqi",
-                    help="comma list: openmeteo, openaq, waqi")
+    ap.add_argument("--sources", default=",".join(sources.DEFAULT_SOURCES),
+                    help="comma list: openmeteo, openaq, waqi, iqair")
+    ap.add_argument("--list-sources", action="store_true",
+                    help="print every known source (automated and manual) and exit")
     ap.add_argument("--venues", default="", help="comma list of venue keys or city names (default: all)")
     ap.add_argument("--years", type=int, default=3, help="climatology mode: past years to pool")
     ap.add_argument("--radius", type=int, default=50000, help="probe mode: station search radius (m)")
     ap.add_argument("--timeout", type=float, default=30.0)
+    ap.add_argument("--archive-all", action="store_true",
+                    help="also archive sources whose licence restricts redistribution "
+                         "(Google, IQAir). Do not use in a public repository.")
     a = ap.parse_args()
+    if getattr(a, 'list_sources', False):
+        for sid, meta in sources.registry().items():
+            tag = 'auto ' if meta['automated'] else 'MANUAL'
+            key = f" key={meta['key']}" if meta.get('key') else ''
+            print(f"{tag}  {sid:<16} {meta['name']:<38} {meta['kind']:<20} "
+                  f"{meta['cadence']:<22}{key}")
+            print(f"        covers: {meta['covers']}")
+            if meta.get('how'):
+                print(f"        how:    {meta['how']}")
+            print(f"        {meta['url']}")
+        return 0
     a.sources = [s.strip() for s in a.sources.split(",") if s.strip()]
     a.venues = [v.strip() for v in a.venues.split(",") if v.strip()] or None
     return {"snapshot": do_snapshot, "climatology": do_climatology, "probe": do_probe}[a.mode](a)

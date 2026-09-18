@@ -1,6 +1,7 @@
 """Air-quality data sources that can be pulled on a schedule.
 
-Three sources are supported, all reachable from an ordinary machine:
+Five adapters exist; four are pulled by default. REGISTRY also lists the agency portals that
+publish only by hand, which for five of the eight host cities are the only station data there is.
 
   openmeteo  Open-Meteo air-quality API (CAMS global/European forecast and archive).
              No key. Model grid values (~11 km in Europe, ~40 km globally), hourly,
@@ -12,6 +13,13 @@ Three sources are supported, all reachable from an ordinary machine:
              including CETESB's network in Sao Paulo. Values are AQI, not ug/m3, except
              where the feed reports concentrations; free use is non-commercial and
              requires attribution to WAQI and the originating agency.
+  google     Google Air Quality API. Paid key (billed Google Cloud project, no keyless tier).
+             Fuses stations, satellite and models into ug/m3 at ~500 m and covers all eight
+             venues, so it is the practical option where no station exists. Google Maps Platform
+             terms restrict redistribution and caching: use it for a team's own planning, and do
+             not commit its values to the public archive.
+  iqair      IQAir / AirVisual. The free Community plan was advertised but not obtainable when
+             tested on 2026-09-18; the adapter is kept for anyone who holds a key.
 
 Every fetcher returns the same record shape so the puller can store them side by side:
 
@@ -38,11 +46,15 @@ USER_AGENT = "WWC27-MedAgent/0.3 (+https://github.com/drmarcocardinale-hub/wwc27
 OPEN_METEO = "https://air-quality-api.open-meteo.com/v1/air-quality"
 OPENAQ = "https://api.openaq.org/v3"
 WAQI = "https://api.waqi.info"
+IQAIR = "https://api.iqair.com/v2"
+GOOGLE_AQ = "https://airquality.googleapis.com/v1"
 
 ATTRIBUTION = {
     "openmeteo": "Air-quality data from Open-Meteo (open-meteo.com), based on CAMS (Copernicus Atmosphere Monitoring Service) ENSEMBLE data.",
     "openaq": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
     "waqi": "Real-time data via the World Air Quality Index project (aqicn.org) and the originating monitoring agency; non-commercial use with attribution.",
+    "iqair": "Air-quality data from IQAir (iqair.com) via the AirVisual API; check IQAir's licence terms before redistribution.",
+    "google": "Air-quality data from the Google Air Quality API; subject to the Google Maps Platform terms, which restrict redistribution and caching.",
 }
 POLLUTANTS = ("pm2_5", "pm10", "no2", "o3")
 _PARAM_ALIASES = {"pm25": "pm2_5", "pm2.5": "pm2_5", "pm2_5": "pm2_5", "pm10": "pm10",
@@ -93,6 +105,23 @@ def _get(url: str, headers: dict[str, str] | None = None, timeout: float = 30.0,
     or rate limit, and an unretried failure leaves a hole in that day's archive.
     """
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as fh:
+                return json.load(fh)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+            if attempt >= retries:
+                raise
+            time.sleep(backoff * (attempt + 1))
+
+
+def _post(url: str, body: dict, headers: dict[str, str] | None = None, timeout: float = 30.0,
+          retries: int = 1, backoff: float = 2.0) -> Any:
+    """POST JSON and parse the JSON reply, retrying once on a transient failure."""
+    data = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=data, method="POST",
+        headers={"User-Agent": USER_AGENT, "Content-Type": "application/json", **(headers or {})})
     for attempt in range(retries + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as fh:
@@ -340,7 +369,213 @@ def waqi_nearest(venue: str, lat: float, lon: float, token: str | None = None,
             "attribution": ATTRIBUTION["waqi"]}
 
 
-FETCHERS = {"openmeteo": open_meteo_current, "openaq": openaq_latest, "waqi": waqi_nearest}
+# --------------------------------------------------------------------------- IQAir / AirVisual
+def iqair_nearest_city(venue: str, lat: float, lon: float, token: str | None = None,
+                       timeout: float = 30.0, max_station_km: float = 60.0) -> dict:
+    """IQAir nearest-city reading. Returns true concentrations (ug/m3), not only an index.
+
+    The free tier exposes /nearest_city; /nearest_station needs a paid plan. IQAir fuses
+    government stations with validated low-cost sensors, which is why it has values for host
+    cities that publish nothing to OpenAQ. City-level, so it describes the urban area rather
+    than a pitch. Check IQAir's licence before redistributing these values.
+    """
+    key = token or os.environ.get("IQAIR_API_KEY")
+    if not key:
+        return _error("iqair", venue, "no IQAIR_API_KEY set (free key: iqair.com/dashboard/api)")
+    q = urllib.parse.urlencode({"lat": f"{lat:.4f}", "lon": f"{lon:.4f}", "key": key})
+    try:
+        data = _get(f"{IQAIR}/nearest_city?{q}", timeout=timeout)
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        return _error("iqair", venue, e)
+    if data.get("status") != "success":
+        return _error("iqair", venue, f"api status {data.get('status')}: {data.get('data')}")
+    d = data.get("data") or {}
+    pol = ((d.get("current") or {}).get("pollution")) or {}
+    coords = ((d.get("location") or {}).get("coordinates")) or []   # [lon, lat]
+    km = (haversine_km(lat, lon, coords[1], coords[0])
+          if len(coords) == 2 and all(isinstance(c, (int, float)) for c in coords) else None)
+    far = km is not None and km > max_station_km
+    city = ", ".join(filter(None, [d.get("city"), d.get("state")]))
+    return {"source": "iqair", "venue": venue, "retrieved_at": _now(),
+            "observed_at": pol.get("ts"), "kind": "city_fused", "units": "ug/m3",
+            "status": "far_station" if far else None,
+            "values": {"pm2_5": (pol.get("p2") or {}).get("conc"),
+                       "pm10": (pol.get("p1") or {}).get("conc"),
+                       "no2": None, "o3": None},
+            "detail": {"aqi_us": pol.get("aqius"), "dominant_pollutant": pol.get("mainus"),
+                       "city": city or None, "station_km": km, "max_station_km": max_station_km,
+                       "note": "city-level value fusing reference stations and validated low-cost "
+                               "sensors; concentrations are ug/m3"
+                               + (f". Nearest covered city is {km} km away, beyond the "
+                                  f"{max_station_km} km limit." if far else "")},
+            "attribution": ATTRIBUTION["iqair"]}
+
+
+# ------------------------------------------------------------------- Google Air Quality API
+def google_air_quality(venue: str, lat: float, lon: float, token: str | None = None,
+                       timeout: float = 30.0) -> dict:
+    """Google Air Quality API current conditions.
+
+    Fuses government stations, satellite retrievals and models, and reports true concentrations
+    in ug/m3 at ~500 m resolution, so it has usable values for the host cities that publish
+    nothing to the open aggregators. Brazil is a supported country with its own local index
+    (bra_saopaulo) alongside the Universal AQI.
+
+    Needs a Google Cloud project with billing enabled - there is no keyless tier. Without
+    GOOGLE_AIR_QUALITY_KEY this returns an error record like any other missing key, so the
+    scheduled pull carries on with the free sources.
+    """
+    key = token or os.environ.get("GOOGLE_AIR_QUALITY_KEY")
+    if not key:
+        return _error("google", venue,
+                      "no GOOGLE_AIR_QUALITY_KEY set (needs a billed Google Cloud project: "
+                      "developers.google.com/maps/documentation/air-quality)")
+    url = f"{GOOGLE_AQ}/currentConditions:lookup?key={urllib.parse.quote(key)}"
+    body = {"location": {"latitude": round(lat, 6), "longitude": round(lon, 6)},
+            "extraComputations": ["POLLUTANT_CONCENTRATION", "LOCAL_AQI"],
+            "languageCode": "en"}
+    try:
+        data = _post(url, body, timeout=timeout)
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        return _error("google", venue, e)
+    if "error" in data:
+        return _error("google", venue, data["error"])
+
+    conc: dict[str, float | None] = {}
+    for p in data.get("pollutants") or []:
+        name = _canon(p.get("code"))
+        c = p.get("concentration") or {}
+        if name in POLLUTANTS and isinstance(c.get("value"), (int, float)):
+            # The API reports PPB for some gases; only keep what is already ug/m3.
+            if str(c.get("units", "")).upper().startswith("MICROGRAMS"):
+                conc[name] = round(float(c["value"]), 1)
+    indexes = {i.get("code"): i for i in (data.get("indexes") or [])}
+    uaqi = indexes.get("uaqi") or {}
+    local = next((v for k, v in indexes.items() if k != "uaqi"), {})
+    return {"source": "google", "venue": venue, "retrieved_at": _now(),
+            "observed_at": data.get("dateTime"), "kind": "city_fused", "units": "ug/m3",
+            "status": None if conc else "no_values",
+            "values": {p: conc.get(p) for p in POLLUTANTS},
+            "detail": {"universal_aqi": uaqi.get("aqi"),
+                       "category": uaqi.get("category"),
+                       "dominant_pollutant": uaqi.get("dominantPollutant"),
+                       "local_index": local.get("code"), "local_aqi": local.get("aqi"),
+                       "region": data.get("regionCode"),
+                       "note": "fused model, satellite and station estimate at ~500 m; a modelled "
+                               "surface for the area, not a measurement at the venue"},
+            "attribution": ATTRIBUTION["google"]}
+
+
+FETCHERS = {"openmeteo": open_meteo_current, "openaq": openaq_latest, "waqi": waqi_nearest,
+            "iqair": iqair_nearest_city, "google": google_air_quality}
+DEFAULT_SOURCES = ["openmeteo", "openaq", "waqi", "google"]
+
+
+# --------------------------------------------------------------------------- source registry
+# Everything known to provide air-quality data for the host cities, automatable or not. The
+# manual entries matter: for five of the eight cities they are the only station data that exists,
+# so the agent should point practitioners at them rather than implying no data exists.
+REGISTRY = {
+    "openmeteo": {"name": "Open-Meteo (CAMS)", "automated": True, "key": None,
+                  "kind": "model", "units": "ug/m3", "cadence": "hourly",
+                  "covers": "all eight venues", "redistribute": True,
+                  "url": "https://open-meteo.com/en/docs/air-quality-api"},
+    "openaq": {"name": "OpenAQ v3", "automated": True, "key": "OPENAQ_API_KEY",
+               "kind": "reference stations", "units": "ug/m3", "cadence": "hourly",
+               "covers": "Rio de Janeiro (current); Sao Paulo indexed but stale since Apr 2023",
+               "redistribute": True, "url": "https://docs.openaq.org/"},
+    "waqi": {"name": "WAQI / aqicn.org", "automated": True, "key": "WAQI_TOKEN",
+             "kind": "stations", "units": "aqi", "cadence": "hourly",
+             "covers": "Sao Paulo only; nearest station is 207-1806 km away for the others",
+             "redistribute": True, "url": "https://aqicn.org/data-platform/token/"},
+    "google": {"name": "Google Air Quality API", "automated": True,
+               "key": "GOOGLE_AIR_QUALITY_KEY", "kind": "fused model + station + satellite",
+               "units": "ug/m3", "cadence": "hourly",
+               "covers": "all eight venues; Brazil supported with a local index",
+               "how": "needs a billed Google Cloud project; no keyless tier",
+               "redistribute": False,
+               "url": "https://developers.google.com/maps/documentation/air-quality"},
+    "iqair": {"name": "IQAir / AirVisual", "automated": True, "key": "IQAIR_API_KEY",
+              "kind": "fused city index", "units": "ug/m3", "cadence": "hourly",
+              "covers": "city pages exist for Brasilia, Recife and Fortaleza",
+              "how": "the free Community plan was not obtainable when tested on 2026-09-18; "
+                     "the adapter is kept for anyone holding a key",
+              "redistribute": False,
+              "url": "https://api-docs.iqair.com/"},
+    "monitorar": {"name": "MonitorAr (MMA, national)", "automated": False, "key": None,
+                  "kind": "reference stations", "units": "ug/m3", "cadence": "annual open data",
+                  "covers": "national; the official station network, CC BY",
+                  "how": "manual download, then scripts/build_monitorar_climatology.py",
+                  "url": "https://dados.mma.gov.br/dataset/ar-puro-monitorar"},
+    "cetesb_qualar": {"name": "CETESB QUALAR", "automated": False, "key": None,
+                      "kind": "reference stations", "units": "ug/m3", "cadence": "hourly",
+                      "covers": "Sao Paulo state (~65 stations)",
+                      "how": "free account; the qualR R package wraps it",
+                      "url": "https://cetesb.sp.gov.br/catalogo-de-dados-abertos/"},
+    "poa_smamus": {"name": "Porto Alegre SMAMUS network", "automated": False, "key": None,
+                   "kind": "reference stations", "units": "ug/m3", "cadence": "real time",
+                   "covers": "Porto Alegre: 5 fixed + 1 mobile station since March 2025",
+                   "how": "dashboard only; request data from SMAMUS",
+                   "url": "https://prefeitura.poa.br/qualidade-do-ar/"},
+    "proar_bh": {"name": "ProAr BH", "automated": False, "key": None,
+                 "kind": "hyperlocal sensors", "units": "iqar", "cadence": "real time",
+                 "covers": "Belo Horizonte municipal sensor network",
+                 "how": "Power BI dashboard; no open feed",
+                 "url": "https://prefeitura.pbh.gov.br/meio-ambiente/proar"},
+    "ibram_df": {"name": "IBRAM (Distrito Federal)", "automated": False, "key": None,
+                 "kind": "reference stations", "units": "ug/m3", "cadence": "monthly reports",
+                 "covers": "Brasilia", "how": "monthly PDF reports",
+                 "url": "https://www.ibram.df.gov.br/programa-de-monitoramento-da-qualidade-do-ar-do-df/"},
+    "cprh_pe": {"name": "CPRH (Pernambuco)", "automated": False, "key": None,
+                "kind": "reference stations", "units": "ug/m3", "cadence": "bulletins",
+                "covers": "Recife", "how": "confirm the station list with the agency",
+                "url": "https://www2.cprh.pe.gov.br/monitoramento-ambiental/qualidade-do-ar-2/"},
+    "semace_ce": {"name": "SEMACE (Ceara)", "automated": False, "key": None,
+                  "kind": "reference stations", "units": "ug/m3", "cadence": "bulletins",
+                  "covers": "Fortaleza", "how": "confirm the station list with the agency",
+                  "url": "https://www.semace.ce.gov.br/monitoramento/monitoramento-da-qualidade-do-ar/"},
+    "inema_ba": {"name": "INEMA (Bahia)", "automated": False, "key": None,
+                 "kind": "reference stations", "units": "ug/m3", "cadence": "bulletins",
+                 "covers": "Salvador", "how": "confirm the station list with the agency",
+                 "url": "https://www.ba.gov.br/meioambiente/"},
+    "iema_platform": {"name": "IEMA Plataforma da Qualidade do Ar", "automated": False,
+                      "key": None, "kind": "reference stations", "units": "ug/m3",
+                      "cadence": "historical, from 2000",
+                      "covers": "11 states + DF, including all eight host states",
+                      "how": "per-state download", "url": "https://energiaeambiente.org.br/qualidadedoar"},
+}
+
+# Which source to reach for first, per venue, given what the 18 Sep 2026 probe found.
+BEST_SOURCE = {
+    "rio_de_janeiro": ["openaq", "openmeteo"],
+    "sao_paulo": ["cetesb_qualar", "waqi", "openmeteo"],
+    "brasilia": ["google", "ibram_df", "openmeteo"],
+    "belo_horizonte": ["google", "proar_bh", "openmeteo"],
+    "porto_alegre": ["poa_smamus", "google", "openmeteo"],
+    "salvador": ["google", "inema_ba", "openmeteo"],
+    "recife": ["google", "cprh_pe", "openmeteo"],
+    "fortaleza": ["google", "semace_ce", "openmeteo"],
+}
+
+
+def may_redistribute(source_id: str) -> bool:
+    """Whether this source's values may be committed to the public archive.
+
+    Google Maps Platform and IQAir both restrict redistribution and caching of their values.
+    They are fine for a team's own planning, so the puller fetches them and prints them, but
+    the scheduled job must not publish them in an openly licensed repository.
+    """
+    return bool(REGISTRY.get(source_id, {}).get("redistribute", True))
+
+
+def registry(automated_only: bool = False) -> dict:
+    return {k: v for k, v in REGISTRY.items() if v["automated"] or not automated_only}
+
+
+def best_sources(venue_key: str) -> list[dict]:
+    """Ordered list of the sources worth trying for a venue, with their registry entries."""
+    return [{"id": s, **REGISTRY[s]} for s in BEST_SOURCE.get(venue_key, ["openmeteo"])
+            if s in REGISTRY]
 
 
 def snapshot(venue: str, lat: float, lon: float, sources: list[str], **kw) -> list[dict]:

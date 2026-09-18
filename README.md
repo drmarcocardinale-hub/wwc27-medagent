@@ -17,6 +17,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 | Tool | `build_screening_checklist` | Phase × domain checklist (Table 2), with venue-specific actions |
 | Tool | `get_air_quality` | Typical pollution sources and June–July pattern per host city, the state monitoring agency, WHO 2021 guideline levels and Brazil's standards; optional live concentrations from the Open-Meteo (CAMS) API |
 | Tool | `plan_respiratory_care` | PM2.5 planning band with session advice, plus asthma/EIB screening, management and the 2026 anti-doping limits for inhaled beta-2 agonists |
+| Tool | `list_air_quality_sources` | Where air-quality data for a city can actually be obtained, best source first: the automated APIs and the state/municipal agency portals |
 | Tool | `find_evidence` | Search of the curated, source-linked evidence table; replies "I don't know" when a question is out of scope |
 | Tool | `tournament_facts` | Dates and format |
 | Resource | `wwc27://manuscript`, `wwc27://table1-venues`, `wwc27://table2-screening`, `wwc27://air-quality`, `wwc27://evidence`, `wwc27://references`, `wwc27://changelog` | Machine-readable article content |
@@ -27,7 +28,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ```bash
 git clone https://github.com/drmarcocardinale-hub/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
-pytest -q                          # 76 tests: source values, computations, refusal, MCP registration, benchmark integrity
+pytest -q                          # 91 tests: source values, computations, refusal, MCP registration, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check
 ```
 
@@ -60,13 +61,23 @@ It also contains the scripts to run the agent against two baselines (the manuscr
 
 ## Air quality: pulling data regularly
 
-City profiles are qualitative (typical sources, June–July pattern, monitoring agency); measurements come from live sources. `scripts/pull_air_quality.py` reads three of them and normalises the records:
+City profiles are qualitative (typical sources, June–July pattern, monitoring agency); measurements come from live sources. `scripts/pull_air_quality.py` reads four of them and normalises the records:
 
 | Source | Key | What it gives |
 |---|---|---|
 | Open-Meteo (CAMS) | none | PM2.5, PM10, NO₂, O₃ for every venue; history from 2013 and a 5-day forecast |
 | OpenAQ v3 | free `OPENAQ_API_KEY` | official station measurements, where the agency publishes them |
 | WAQI (aqicn.org) | free `WAQI_TOKEN` | real-time station feeds, including CETESB's network (AQI, not µg/m³) |
+| Google Air Quality | paid `GOOGLE_AIR_QUALITY_KEY` | µg/m³ at ~500 m for all eight venues, fusing stations, satellite and models; the practical option where no station exists. Needs a billed Google Cloud project |
+| IQAir / AirVisual | `IQAIR_API_KEY` | adapter retained, but the free Community plan was not obtainable when tested (18 Sep 2026) |
+
+> **Licences differ.** Open-Meteo, OpenAQ and WAQI values are committed to the archive with attribution. Google and IQAir restrict redistribution and caching, so the puller fetches and prints them but **excludes them from the committed archive** (`--archive-all` overrides this; do not use it in a public repository).
+
+Beyond these four, several host cities publish only through their own agency portal. Those are in the registry too, so the agent can point practitioners at them instead of implying no data exists:
+
+```bash
+python scripts/pull_air_quality.py --list-sources   # automated + manual, with coverage and URLs
+```
 
 ```bash
 python scripts/pull_air_quality.py --mode probe                  # what each source sees near each venue

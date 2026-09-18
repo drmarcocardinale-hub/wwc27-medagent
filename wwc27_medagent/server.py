@@ -69,6 +69,14 @@ def build_screening_checklist(phase: str = "all", domains: list[str] | None = No
 
 
 @mcp.tool()
+def list_air_quality_sources(city: str = "") -> dict:
+    """Where air-quality data for a host city can actually be obtained, best source first:
+    the automated APIs and the state or municipal agency portals, with what each one provides.
+    Omit `city` for the full registry. Open station coverage is uneven across the eight venues."""
+    return core.air_quality_sources(city or None)
+
+
+@mcp.tool()
 def find_evidence(query: str, domain: str | None = None, limit: int = 5) -> dict:
     """Search the curated, source-linked evidence table. Returns 'I don't know' when no
     curated source supports an answer."""

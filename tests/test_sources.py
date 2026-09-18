@@ -344,3 +344,187 @@ def test_waqi_distances_from_the_live_probe_are_all_rejected_except_sao_paulo():
     for name, vlat, vlon, slat, slon, should_reject in cases:
         km = sources.haversine_km(vlat, vlon, slat, slon)
         assert (km > 50) is should_reject, f"{name}: {km} km"
+
+
+# ------------------------------------------------------- IQAir adapter and source registry
+
+IQAIR_FEED = {"status": "success", "data": {
+    "city": "Recife", "state": "Pernambuco", "country": "Brazil",
+    "location": {"type": "Point", "coordinates": [-34.8770, -8.0476]},
+    "current": {"pollution": {"ts": "2026-09-18T14:00:00.000Z", "aqius": 44, "mainus": "p2",
+                              "p2": {"conc": 10.6, "aqius": 44}, "p1": {"conc": 18.0}}}}}
+
+
+def test_iqair_returns_concentrations_not_only_an_index(monkeypatch):
+    """IQAir gives ug/m3 at data.current.pollution.p2.conc, which WAQI does not."""
+    monkeypatch.setattr(sources, "_get", lambda *a, **k: IQAIR_FEED)
+    r = sources.iqair_nearest_city("recife", -8.0476, -34.8770, token="k")
+    assert r["units"] == "ug/m3"
+    assert r["values"]["pm2_5"] == 10.6 and r["values"]["pm10"] == 18.0
+    assert r["detail"]["aqi_us"] == 44 and r["detail"]["city"] == "Recife, Pernambuco"
+    assert r["status"] is None and r["detail"]["station_km"] < 5
+
+
+def test_iqair_far_city_is_flagged(monkeypatch):
+    monkeypatch.setattr(sources, "_get", lambda *a, **k: IQAIR_FEED)
+    r = sources.iqair_nearest_city("fortaleza", -3.7319, -38.5267, token="k")
+    assert r["status"] == "far_station"      # Recife is ~630 km from Fortaleza
+
+
+def test_iqair_without_key_is_reported_not_raised(monkeypatch):
+    monkeypatch.delenv("IQAIR_API_KEY", raising=False)
+    r = sources.iqair_nearest_city("brasilia", -15.78, -47.93)
+    assert r["status"] == "error" and "IQAIR_API_KEY" in r["detail"]
+
+
+def test_registry_covers_every_venue_with_at_least_one_source():
+    for key in core.venues():
+        best = sources.best_sources(key)
+        assert best, f"{key} has no source"
+        assert any(s["automated"] for s in best), f"{key} has no automated source"
+        for s in best:
+            assert s["url"].startswith("https://")
+
+
+def test_registry_separates_automated_from_manual():
+    auto = sources.registry(automated_only=True)
+    assert set(auto) == set(sources.FETCHERS)
+    full = sources.registry()
+    assert "monitorar" in full and full["monitorar"]["automated"] is False
+    assert "poa_smamus" in full and "cetesb_qualar" in full
+
+
+def test_live_lookup_prefers_a_real_station_over_a_model(monkeypatch):
+    """A model grid cell must not win when a current station reading is available."""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    recs = [
+        {"source": "openmeteo", "kind": "model_forecast", "units": "ug/m3",
+         "values": {"pm2_5": 19.0}, "observed_at": now},
+        {"source": "openaq", "kind": "station", "units": "ug/m3",
+         "values": {"pm2_5": 11.0}, "observed_at": now},
+    ]
+    monkeypatch.setattr(sources, "snapshot", lambda *a, **k: recs)
+    monkeypatch.setenv("AIRQ_SOURCES", "openmeteo,openaq")
+    out = core.air_quality("Rio de Janeiro", live=True)["live"]
+    assert out["source"] == "openaq" and out["pm2_5"] == 11.0
+
+
+def test_live_lookup_never_promotes_a_far_or_stale_reading(monkeypatch):
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    recs = [
+        {"source": "waqi", "kind": "station", "units": "aqi", "status": "far_station",
+         "values": {"pm2_5": 30}, "observed_at": now},
+        {"source": "openaq", "kind": "station", "units": "ug/m3", "status": "all_stale",
+         "values": {}, "observed_at": None},
+        {"source": "openmeteo", "kind": "model_forecast", "units": "ug/m3",
+         "values": {"pm2_5": 7.1}, "observed_at": now},
+    ]
+    monkeypatch.setattr(sources, "snapshot", lambda *a, **k: recs)
+    monkeypatch.setenv("AIRQ_SOURCES", "waqi,openaq,openmeteo")
+    out = core.air_quality("Recife", live=True)["live"]
+    assert out["source"] == "openmeteo", "a 1477 km station must not beat the model"
+
+
+def test_unavailable_lookup_points_at_the_agency_portal(monkeypatch):
+    monkeypatch.setattr(sources, "snapshot",
+                        lambda *a, **k: [{"source": "openmeteo", "status": "error",
+                                          "detail": "offline"}])
+    monkeypatch.setenv("AIRQ_SOURCES", "openmeteo")
+    out = core.air_quality("Porto Alegre", live=True)["live"]
+    assert out["status"] == "unavailable"
+    names = [t["name"] for t in out["try_these"]]
+    assert any("Porto Alegre" in n for n in names)
+
+
+def test_air_quality_sources_tool_lists_city_and_registry():
+    one = core.air_quality_sources("Porto Alegre")
+    assert one["city"] == "Porto Alegre"
+    assert one["best_first"][0]["source"].startswith("Porto Alegre")
+    allsrc = core.air_quality_sources()
+    assert "monitorar" in allsrc["registry"] and "iqair" in allsrc["automated"]
+
+
+# --------------------------------------------------- Google Air Quality API (IQAir replacement)
+
+GOOGLE_FEED = {
+    "dateTime": "2026-09-18T14:00:00Z", "regionCode": "br",
+    "indexes": [{"code": "uaqi", "displayName": "Universal AQI", "aqi": 78,
+                 "category": "Good air quality", "dominantPollutant": "pm25"},
+                {"code": "bra_saopaulo", "displayName": "Brazil AQI", "aqi": 31}],
+    "pollutants": [
+        {"code": "pm25", "displayName": "PM2.5",
+         "concentration": {"value": 9.42, "units": "MICROGRAMS_PER_CUBIC_METER"}},
+        {"code": "pm10", "displayName": "PM10",
+         "concentration": {"value": 17.3, "units": "MICROGRAMS_PER_CUBIC_METER"}},
+        {"code": "no2", "displayName": "NO2",
+         "concentration": {"value": 4.1, "units": "PARTS_PER_BILLION"}}]}
+
+
+def test_google_air_quality_parses_concentrations_and_local_index(monkeypatch):
+    monkeypatch.setattr(sources, "_post", lambda *a, **k: GOOGLE_FEED)
+    r = sources.google_air_quality("recife", -8.0476, -34.8770, token="k")
+    assert r["units"] == "ug/m3" and r["status"] is None
+    assert r["values"]["pm2_5"] == 9.4 and r["values"]["pm10"] == 17.3
+    assert r["detail"]["universal_aqi"] == 78
+    assert r["detail"]["local_index"] == "bra_saopaulo" and r["detail"]["local_aqi"] == 31
+
+
+def test_google_drops_values_that_are_not_ugm3(monkeypatch):
+    """NO2 comes back in PPB; mixing it into a ug/m3 series would be wrong."""
+    monkeypatch.setattr(sources, "_post", lambda *a, **k: GOOGLE_FEED)
+    r = sources.google_air_quality("recife", -8.0476, -34.8770, token="k")
+    assert r["values"]["no2"] is None
+
+
+def test_google_without_key_is_reported_not_raised(monkeypatch):
+    monkeypatch.delenv("GOOGLE_AIR_QUALITY_KEY", raising=False)
+    r = sources.google_air_quality("brasilia", -15.78, -47.93)
+    assert r["status"] == "error" and "GOOGLE_AIR_QUALITY_KEY" in r["detail"]
+
+
+def test_google_api_error_is_recorded(monkeypatch):
+    monkeypatch.setattr(sources, "_post",
+                        lambda *a, **k: {"error": {"code": 403, "message": "billing disabled"}})
+    r = sources.google_air_quality("recife", -8.0476, -34.8770, token="k")
+    assert r["status"] == "error" and "billing" in r["detail"]
+
+
+def test_gap_cities_prefer_google_now_that_iqair_is_unobtainable():
+    for city in ("brasilia", "belo_horizonte", "salvador", "recife", "fortaleza"):
+        assert sources.best_sources(city)[0]["id"] == "google", city
+    assert sources.REGISTRY["iqair"]["how"].startswith("the free Community plan")
+    assert "google" in sources.DEFAULT_SOURCES and "iqair" not in sources.DEFAULT_SOURCES
+
+
+def test_restricted_sources_are_not_written_to_the_public_archive(monkeypatch, tmp_path):
+    """Google and IQAir forbid redistribution; the scheduled job commits to a public repo."""
+    import importlib.util
+    from pathlib import Path
+
+    assert sources.may_redistribute("openmeteo") is True
+    assert sources.may_redistribute("google") is False
+    assert sources.may_redistribute("iqair") is False
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    recs = [{"source": "openmeteo", "kind": "model_forecast", "units": "ug/m3",
+             "values": {"pm2_5": 8.0}, "observed_at": now},
+            {"source": "google", "kind": "city_fused", "units": "ug/m3",
+             "values": {"pm2_5": 9.4}, "observed_at": now}]
+    script = Path(core.__file__).parents[1] / "scripts" / "pull_air_quality.py"
+    spec = importlib.util.spec_from_file_location("pull_aq2", script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "ARCHIVE", tmp_path)
+    monkeypatch.setattr(mod.sources, "snapshot", lambda *a, **k: [dict(r) for r in recs])
+
+    args = type("A", (), {"sources": ["openmeteo", "google"], "venues": ["recife"],
+                          "timeout": 5, "archive_all": False})()
+    assert mod.do_snapshot(args) == 0
+    stored = json.loads((tmp_path / "latest.json").read_text())["records"]
+    assert [r["source"] for r in stored] == ["openmeteo"], "Google must not reach the archive"
+
+    args_all = type("A", (), {"sources": ["openmeteo", "google"], "venues": ["recife"],
+                              "timeout": 5, "archive_all": True})()
+    mod.do_snapshot(args_all)
+    stored = json.loads((tmp_path / "latest.json").read_text())["records"]
+    assert {r["source"] for r in stored} == {"openmeteo", "google"}

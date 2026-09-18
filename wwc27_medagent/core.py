@@ -214,19 +214,69 @@ def _live_air_quality(lat: float, lon: float, timeout: float = 10.0, venue: str 
 
     from . import sources as _sources
 
-    names = [s.strip() for s in os.environ.get("AIRQ_SOURCES", "openmeteo").split(",") if s.strip()]
+    default = ",".join(_sources.DEFAULT_SOURCES)
+    names = [s.strip() for s in os.environ.get("AIRQ_SOURCES", default).split(",") if s.strip()]
     recs = _sources.snapshot(venue, lat, lon, names, timeout=timeout)
-    ok = [r for r in recs if r.get("status") != "error" and (r.get("values") or {})]
+
+    def usable(r: dict) -> bool:
+        if r.get("status") in ("error", "far_station", "all_stale", "no_stations", "no_values"):
+            return False
+        return (r.get("values") or {}).get("pm2_5") is not None
+
+    # Prefer a real measurement near the venue over a model grid cell, and a concentration over
+    # an index. A distant or stale station is never promoted just because it answered first.
+    rank = {"station": 0, "city_fused": 1, "model_forecast": 2, "model_archive": 3}
+    ok = sorted((r for r in recs if usable(r)),
+                key=lambda r: (rank.get(r.get("kind"), 9), r.get("units") != "ug/m3"))
+    where_else = _sources.best_sources(venue) if venue else []
     if not ok:
         return {"status": "unavailable",
                 "detail": [f"{r['source']}: {r.get('detail') or r.get('status')}" for r in recs],
-                "advice": "Run on a machine with internet access, or use the local monitoring "
-                          "agency's portal. Station sources need OPENAQ_API_KEY or WAQI_TOKEN."}
+                "advice": "No live source could describe this venue. Station sources need "
+                          "OPENAQ_API_KEY, WAQI_TOKEN or IQAIR_API_KEY; several host cities "
+                          "publish only through their own agency portal.",
+                "try_these": [{"name": s["name"], "url": s["url"], "how": s.get("how")}
+                              for s in where_else if not s["automated"]]}
     primary = ok[0]
     return {"status": "ok", "measured_at": primary.get("observed_at"), "source": primary["source"],
-            "units": primary.get("units"), **primary.get("values", {}),
+            "kind": primary.get("kind"), "units": primary.get("units"),
+            **primary.get("values", {}),
             "detail": primary.get("detail"), "attribution": primary.get("attribution"),
+            "other_sources_for_this_city": [s["name"] for s in where_else],
             "all_sources": recs}
+
+
+def _data_sources_for(venue_key: str) -> list[dict]:
+    """Where a practitioner should actually look for this city's air quality, best first.
+
+    Open station coverage is uneven: five of the eight host cities publish nothing usable to the
+    international aggregators, so naming the agency portal matters as much as the API.
+    """
+    from . import sources as _sources
+
+    return [{"source": s["name"], "automated": s["automated"], "kind": s["kind"],
+             "units": s["units"], "cadence": s["cadence"], "url": s["url"],
+             **({"how": s["how"]} if s.get("how") else {}),
+             **({"api_key_env": s["key"]} if s.get("key") else {})}
+            for s in _sources.best_sources(venue_key)]
+
+
+def air_quality_sources(city: str | None = None) -> dict:
+    """Every known air-quality source: the automated ones and the agency portals.
+
+    With a city, the list is ordered for that venue; without, the whole registry is returned.
+    """
+    from . import sources as _sources
+
+    if city:
+        key = resolve_venue(city)
+        return {"city": venues()[key]["city"], "best_first": _data_sources_for(key),
+                "note": "Automated sources are pulled twice daily; the rest must be checked by "
+                        "hand. Only Open-Meteo (CAMS) covers all eight venues."}
+    return {"registry": _sources.registry(),
+            "automated": sorted(_sources.registry(automated_only=True)),
+            "note": "Measured 18 September 2026: current reference-grade PM2.5 reached the open "
+                    "aggregators for one of eight host cities."}
 
 
 def air_quality(city: str, live: bool = False) -> dict:
@@ -242,6 +292,9 @@ def air_quality(city: str, live: bool = False) -> dict:
                                 + ("" if rec["monitoring"]["verified"] else " (confirm that a monitoring network operates here)"),
            "who_2021_guidelines_ug_m3": aq["guidelines_who_2021_ug_m3"],
            "national_standards": "CONAMA Resolution 506/2024, staged (PI-2 from 1 Jan 2025); less strict than the WHO guideline levels.",
+           "station_coverage": rec.get("station_coverage"),
+           "where_to_get_data": _data_sources_for(key),
+           "climatology_measured": (aq.get("climatology_stations") or {}).get(key),
            "climatology": (aq.get("climatology") or {}).get(key) or aq["_meta"]["climatology_status"],
            "caveats": aq["_meta"]["caveats"],
            "sources": [cite("WHO_AQG2021"), cite("CONAMA2024"), cite("Esh2026")],

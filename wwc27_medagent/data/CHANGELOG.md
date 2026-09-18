@@ -2,6 +2,25 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.4.1 — 2026-09-18
+IQAir's free tier turned out not to be obtainable, so the gap cities needed a different answer.
+
+- **Google Air Quality API added** (`GOOGLE_AIR_QUALITY_KEY`). Fuses stations, satellite and models into µg/m³ at ~500 m and covers all eight venues; Brazil has its own local index alongside the Universal AQI. It needs a billed Google Cloud project — there is no keyless tier — so without a key it returns an error record and the pull carries on with the free sources. It is now the first-choice source for Brasília, Belo Horizonte, Salvador, Recife and Fortaleza.
+- **IQAir demoted, not removed.** The Community plan is still advertised but could not be obtained on 18 September 2026. The adapter stays for anyone holding a key, and the registry records why it is not the default.
+- **Licence gate on the public archive.** Google and IQAir both restrict redistribution and caching, and the scheduled job commits readings to a public repository twice a day. Sources are now flagged for redistribution: restricted ones are fetched and printed but excluded from the committed archive, with `--archive-all` as an explicit override.
+- Values reported in units other than µg/m³ (Google returns some gases in ppb) are dropped rather than mixed into a µg/m³ series.
+- 91 automated tests.
+
+## 0.4.0 — 2026-09-18
+Every known source is now reachable from the agent — automated where an API exists, named where it does not.
+
+- **New source: IQAir / AirVisual** (`IQAIR_API_KEY`, free tier). Returns true concentrations in µg/m³, not only an index, and has values for Brasília, Recife and Fortaleza, which publish nothing usable to OpenAQ. City-level and partly fused from low-cost sensors, so it is labelled `city_fused` and distance-checked like any station.
+- **New tool `list_air_quality_sources`.** For five of the eight host cities the only station data that exists is on a state or municipal portal. The agent now names them — MonitorAr, CETESB QUALAR, the Porto Alegre SMAMUS network, ProAr BH, IBRAM, CPRH, SEMACE, INEMA, the IEMA platform — with what each provides and how to reach it, instead of reporting that no data is available.
+- **Source registry** (`sources.REGISTRY`, `sources.BEST_SOURCE`): thirteen sources, four automated, each with coverage, units, cadence, key and URL, plus a per-venue order of preference. `pull_air_quality.py --list-sources` prints it and `--mode probe` names the best source for each venue.
+- **The live lookup now chooses properly.** It prefers a current station reading over a model grid cell, and a concentration over an index, and never promotes a reading flagged far, stale or empty — previously it took whichever source answered first. When nothing is available it returns the agency portals to try instead.
+- **New script `build_monitorar_climatology.py`**: builds a *measured* June–July climatology for the host cities from MonitorAr's national open data (CC BY), written to `climatology_stations` alongside the modelled CAMS `climatology` so the provenance of each number stays explicit. The download host is not reachable from CI, so the files are fetched by hand once.
+- 85 automated tests.
+
 ## 0.3.3 — 2026-09-18
 Findings and fixes from the first authenticated OpenAQ probe of all eight host cities.
 
