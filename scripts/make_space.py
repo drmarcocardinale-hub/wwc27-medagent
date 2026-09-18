@@ -7,17 +7,23 @@ the files the server needs.
 
     python scripts/make_space.py
 
-Then, once (replace OWNER with your Hugging Face username):
+The owner and Space name are set below (HF_USER, SPACE_NAME); the README and the endpoint are
+generated from them, so there is nothing to fill in by hand. Then, once:
 
     1. Create the Space at https://huggingface.co/new-space
-       - Owner: you            - Space name: wwc27-medagent
-       - SDK: Docker           - Hardware: CPU basic (free)   - Visibility: Public
-    2. cd build/space
+       - Owner: the same account as HF_USER      - Space name: SPACE_NAME below
+       - SDK: Docker (Blank template)            - Hardware: CPU basic (free)
+       - Visibility: Public
+    2. Either upload build/space/ through the Space's Files tab, or:
+       cd build/space
        git init && git add -A && git commit -m "WWC27-MedAgent MCP server"
-       git remote add origin https://huggingface.co/spaces/OWNER/wwc27-medagent
-       git push -u origin main
-    3. Watch the build log on the Space page. When it goes green the endpoint is
-       https://OWNER-wwc27-medagent.hf.space/mcp
+       git branch -M main
+       git remote add origin https://huggingface.co/spaces/<HF_USER>/<SPACE_NAME>
+       git push -u origin main          # username = HF username, password = a WRITE access token
+    3. Watch the build log on the Space page. When it goes green, the endpoint is
+       https://<HF_USER>-<SPACE_NAME>.hf.space/mcp
+
+Renaming the Space later changes that URL, which matters once it is cited in a paper.
 
 Connect an MCP client to that URL. Free Spaces sleep after ~48 h idle and wake on the next
 request, so the first call after a quiet spell is slow. Nothing here stores data or takes user
@@ -30,6 +36,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "build" / "space"
+
+# Hugging Face username that owns the Space. The endpoint is derived from it, so
+# changing this (or renaming the Space) changes the published URL.
+HF_USER = "marcocardi"
+SPACE_NAME = "wwc27-medagent"
 
 # Only what the server needs at runtime. The benchmark, tests, docs and site stay in the
 # GitHub repository; the Space is the live endpoint, not a second copy of the project.
@@ -44,7 +55,7 @@ sdk: docker
 app_port: 7860
 pinned: false
 license: mit
-short_description: Paper agent for FIFA Women's World Cup Brazil 2027 medical preparation
+short_description: Medical preparation agent for the 2027 Women's World Cup
 ---
 
 # WWC27-MedAgent
@@ -63,11 +74,11 @@ It follows the Paper2Agent model (Miao et al., *Nature* 2026,
 
 ## Connect to it
 
-The endpoint is `https://{OWNER}-wwc27-medagent.hf.space/mcp` (streamable HTTP).
+The endpoint is `https://{hf}-wwc27-medagent.hf.space/mcp` (streamable HTTP).
 
 **Claude Code**
 ```bash
-claude mcp add --transport http wwc27-medagent https://{OWNER}-wwc27-medagent.hf.space/mcp
+claude mcp add --transport http wwc27-medagent https://{hf}-wwc27-medagent.hf.space/mcp
 ```
 
 **Claude Desktop** — Settings → Connectors → Add custom connector, and paste the same URL.
@@ -103,30 +114,48 @@ record; cite that.
 
 
 def main() -> int:
-    if OUT.exists():
-        shutil.rmtree(OUT)
-    OUT.mkdir(parents=True)
+    # Overwrite in place rather than deleting first: this folder may sit on a mount where
+    # unlink is not permitted, and a failed rmtree there leaves a half-removed bundle.
+    OUT.mkdir(parents=True, exist_ok=True)
+    before = {f.relative_to(OUT) for f in OUT.rglob("*") if f.is_file()}
     for item in COPY:
         src = ROOT / item
         if not src.exists():
             raise SystemExit(f"missing {item}")
         if src.is_dir():
-            shutil.copytree(src, OUT / item,
+            shutil.copytree(src, OUT / item, dirs_exist_ok=True,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "airq_archive"))
         else:
             shutil.copy2(src, OUT / item)
-    (OUT / "README.md").write_text(README, encoding="utf-8")
+    readme = README.format(hf=HF_USER)
+    # Hugging Face rejects the upload if this exceeds 60 characters, and the error only shows
+    # after the files are already on the Space, so check it before writing.
+    for line in readme.splitlines():
+        if line.startswith("short_description:"):
+            value = line.split(":", 1)[1].strip()
+            if len(value) > 60:
+                raise SystemExit(f"short_description is {len(value)} characters; "
+                                 f"Hugging Face allows 60:\n  {value}")
+    (OUT / "README.md").write_text(readme, encoding="utf-8")
     (OUT / ".gitattributes").write_text("*.json text\n*.md text\n", encoding="utf-8")
+    (OUT / ".gitignore").write_text(
+        "__pycache__/\n*.pyc\n.DS_Store\n", encoding="utf-8")
 
-    n = sum(1 for _ in OUT.rglob("*") if _.is_file())
+    written = {f.relative_to(OUT) for f in OUT.rglob("*") if f.is_file()}
+    stale = sorted(f for f in (before - written) if "__pycache__" not in str(f))
+    if stale:
+        print("Note: left over from an earlier build, not part of the bundle:")
+        for f in stale:
+            print(f"  {f}")
+    n = sum(1 for _ in OUT.rglob("*") if _.is_file() and "__pycache__" not in str(_))
     mb = sum(f.stat().st_size for f in OUT.rglob("*") if f.is_file()) / 1e6
     print(f"build/space/ assembled: {n} files, {mb:.1f} MB")
     print("\nNext:")
     print("  1. Create a Docker Space at https://huggingface.co/new-space (name: wwc27-medagent)")
     print("  2. cd build/space && git init && git add -A && git commit -m 'WWC27-MedAgent'")
-    print("     git remote add origin https://huggingface.co/spaces/OWNER/wwc27-medagent")
+    print(f"     git remote add origin https://huggingface.co/spaces/{HF_USER}/{SPACE_NAME}")
     print("     git push -u origin main")
-    print("  3. Replace {OWNER} in build/space/README.md with your Hugging Face username first.")
+    print(f"\n  Endpoint once it is running:  https://{HF_USER}-{SPACE_NAME}.hf.space/mcp")
     return 0
 
 
