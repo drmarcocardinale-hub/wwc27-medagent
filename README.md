@@ -1,6 +1,6 @@
 # WWC27-MedAgent
 
-[![tests](https://github.com/OWNER/wwc27-medagent/actions/workflows/tests.yml/badge.svg)](https://github.com/OWNER/wwc27-medagent/actions/workflows/tests.yml)
+[![tests](https://github.com/drmarcocardinale-hub/wwc27-medagent/actions/workflows/tests.yml/badge.svg)](https://github.com/drmarcocardinale-hub/wwc27-medagent/actions/workflows/tests.yml)
 <!-- Add the Zenodo DOI badge here after the first release -->
 
 WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine and Science Considerations to Maximise Preparation for the FIFA Women's World Cup Brazil 2027: From Static Evidence to a Living Agent"* (Cardinale & Geertsema; submitted to *Sports Medicine*). It follows the Paper2Agent model (Miao et al., *Nature* 2026, doi:10.1038/s41586-026-11044-y). The article's tables, decision tools and evidence base are packaged as a **Model Context Protocol (MCP) server**, so any MCP-compatible AI assistant can answer practitioners' questions from them in plain language, with sources.
@@ -25,7 +25,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ## Install and test
 
 ```bash
-git clone https://github.com/OWNER/wwc27-medagent.git && cd wwc27-medagent
+git clone https://github.com/drmarcocardinale-hub/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
 pytest -q                          # 66 tests: source values, computations, refusal, MCP registration, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check

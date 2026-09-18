@@ -4,7 +4,7 @@ title: "WWC27-MedAgent: a living paper agent for sports medicine and science pre
 version: 0.3.1
 date-released: 2026-09-18
 license: MIT
-repository-code: "https://github.com/OWNER/wwc27-medagent"   # replace OWNER after creating the repository
+repository-code: "https://github.com/drmarcocardinale-hub/wwc27-medagent"
 type: software
 authors:
   - family-names: Cardinale
