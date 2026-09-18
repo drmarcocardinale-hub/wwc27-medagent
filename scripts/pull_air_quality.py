@@ -45,12 +45,21 @@ def do_snapshot(args) -> int:
     for key, v in _venues(args.venues):
         for rec in sources.snapshot(key, v["lat"], v["lon"], args.sources, timeout=args.timeout):
             rec["city"] = v["city"]
-            if rec.get("units") == "ug/m3" and (rec.get("values") or {}).get("pm2_5") is not None:
-                rec["planning_band"] = core.pm25_band(rec["values"]["pm2_5"])["band"]
-            rows.append(rec)
-            status = rec.get("status") or rec.get("planning_band") or "ok"
             pm = (rec.get("values") or {}).get("pm2_5")
-            print(f"{v['city']:<15} {rec['source']:<10} pm2.5={pm!s:<7} {status}")
+            far = rec.get("status") == "far_station"
+            if rec.get("units") == "ug/m3" and pm is not None and not far:
+                rec["planning_band"] = core.pm25_band(pm)["band"]
+            # AQI is not a concentration: band the converted estimate, and label it as such.
+            est = (rec.get("values_ugm3_est") or {}).get("pm2_5")
+            if rec.get("units") == "aqi" and est is not None and not far:
+                rec["planning_band_est"] = core.pm25_band(est)["band"]
+            rows.append(rec)
+            status = rec.get("status") or rec.get("planning_band") or rec.get("planning_band_est") or "ok"
+            shown = f"{pm}" if rec.get("units") != "aqi" else f"AQI {pm} (~{est} ug/m3)"
+            detail = rec.get("detail")
+            km = detail.get("station_km") if isinstance(detail, dict) else None
+            note = f"  station {km} km" if km is not None else ""
+            print(f"{v['city']:<15} {rec['source']:<10} pm2.5={shown:<24} {status}{note}")
     month_file = ARCHIVE / f"{stamp:%Y-%m}.jsonl"
     with month_file.open("a", encoding="utf-8") as fh:
         for r in rows:
@@ -73,7 +82,7 @@ def do_probe(args) -> int:
             else:
                 print(f"  openaq: {len(idx['locations'])} station(s) within {args.radius/1000:.0f} km")
                 for loc in idx["locations"][:5]:
-                    print(f"    - {loc['name']} ({loc['provider']}) {','.join(filter(None, loc['sensors']))} last={loc['last']}")
+                    print(f"    - {loc['name']} ({loc['provider']}) {','.join(s['parameter'] for s in loc['sensors'] if s['parameter'])} {loc['distance_km']}km last={loc['last']}")
         if "waqi" in args.sources:
             w = sources.waqi_nearest(key, v["lat"], v["lon"], timeout=args.timeout)
             print(f"  waqi: {w.get('detail', {}).get('station') or w.get('detail') or w.get('status')}")
@@ -138,7 +147,7 @@ def main() -> int:
                     help="comma list: openmeteo, openaq, waqi")
     ap.add_argument("--venues", default="", help="comma list of venue keys or city names (default: all)")
     ap.add_argument("--years", type=int, default=3, help="climatology mode: past years to pool")
-    ap.add_argument("--radius", type=int, default=25000, help="probe mode: station search radius (m)")
+    ap.add_argument("--radius", type=int, default=50000, help="probe mode: station search radius (m)")
     ap.add_argument("--timeout", type=float, default=30.0)
     a = ap.parse_args()
     a.sources = [s.strip() for s in a.sources.split(",") if s.strip()]

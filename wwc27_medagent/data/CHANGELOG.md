@@ -2,6 +2,17 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.3.2 — 2026-09-18
+Fixes found by the first live air-quality pull and the first CI run. No change to any published claim in the article.
+
+- **MCP SDK 2.x support.** The SDK renamed `FastMCP` to `MCPServer` in version 2.0, which broke the server on any fresh install. `server.py` now detects and supports both majors (`MCP_MAJOR`), including the move of the HTTP host/port settings into `run()`. CI tests both `mcp<2` and `mcp>=2` on Python 3.10 and 3.12, so an upstream major release cannot break users silently again.
+- **OpenAQ values were silently discarded.** The v3 `/latest` endpoint identifies readings by `sensorsId` with no parameter name, so the previous parameter matching dropped every measurement and all eight cities reported no data while appearing to succeed. Sensor ids are now resolved from the station index.
+- **OpenAQ station search widened.** The v3 radius query is capped at 25 km, which returned "no stations" for Brasília, Belo Horizonte, Porto Alegre and Recife. A bounding-box fallback (~50 km) is tried before giving up, and each station's distance from the venue is recorded.
+- **WAQI could report another city's air.** The `geo:` lookup returns the nearest station at any distance; Salvador and Recife (677 km apart) received identical readings. Station distance is now measured, and a station beyond 50 km is flagged `far_station` and excluded from planning bands.
+- **WAQI units.** WAQI returns US EPA AQI sub-indices, not µg/m³. Treating AQI 65 as 65 µg/m³ overstates PM2.5 roughly fourfold. Readings are now converted with the EPA breakpoints into `values_ugm3_est` and labelled as estimates; raw AQI is retained.
+- **Transient failures are retried once** (Brasília failed while the other seven cities succeeded), so a single upstream blip no longer leaves a hole in the archive.
+- 71 automated tests; the five regression tests pin each defect above.
+
 ## 0.3.1 — 2026-09-18
 - Air-quality workflow now runs twice a day (09:10 and 20:10 UTC = 06:10 and 17:10 in Brazil), covering morning training and evening sessions or kick-offs.
 - Step-by-step instructions for adding OPENAQ_API_KEY and WAQI_TOKEN as GitHub repository secrets (README, RELEASING.md, docs/air_quality_sources.md), plus a cron alternative.

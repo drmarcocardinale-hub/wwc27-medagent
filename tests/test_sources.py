@@ -154,3 +154,108 @@ def test_pull_script_records_failures_and_returns_nonzero(monkeypatch, tmp_path)
     assert mod.do_snapshot(args) == 1
     latest = json.loads((tmp_path / "latest.json").read_text())
     assert latest["records"][0]["status"] == "error"
+
+
+# ------------------------------------------------- regression: real-world pull, 18 Sep 2026
+# The first live run exposed three defects. Each is pinned here.
+
+def test_openaq_latest_resolves_parameters_from_sensor_ids(monkeypatch):
+    """OpenAQ v3 /latest identifies readings by sensorsId only, with no parameter name.
+
+    Matching on a missing `parameter` field silently dropped every value, so all eight cities
+    reported pm2.5=None while appearing to succeed.
+    """
+    locations = {"results": [{
+        "id": 7, "name": "Centro", "provider": {"name": "CETESB"},
+        "coordinates": {"latitude": -23.55, "longitude": -46.63},
+        "sensors": [{"id": 101, "parameter": {"name": "pm25"}},
+                    {"id": 102, "parameter": {"name": "o3"}}],
+        "datetimeLast": {"utc": "2026-09-18T12:00:00Z"}}]}
+    latest = {"results": [{"sensorsId": 101, "value": 12.4, "datetime": {"utc": "2026-09-18T12:00:00Z"}},
+                          {"sensorsId": 102, "value": 40.0, "datetime": {"utc": "2026-09-18T12:00:00Z"}}]}
+
+    def fake_get(url, headers=None, timeout=30.0, **kw):
+        return latest if "/latest" in url else locations
+
+    monkeypatch.setattr(sources, "_get", fake_get)
+    rec = sources.openaq_latest("sao_paulo", -23.55, -46.63, api_key="k")
+    assert rec["values"]["pm2_5"] == 12.4
+    assert rec["values"]["o3"] == 40.0
+    assert rec["status"] is None
+    assert rec["detail"]["furthest_station_km"] is not None
+
+
+def test_openaq_falls_back_to_bbox_when_radius_finds_nothing(monkeypatch):
+    """The v3 radius search is capped at 25 km, which returned no_stations for four host cities."""
+    calls = []
+
+    def fake_get(url, headers=None, timeout=30.0, **kw):
+        calls.append(url)
+        if "bbox" in url:
+            return {"results": [{"id": 1, "name": "Far station", "provider": {"name": "X"},
+                                 "coordinates": {"latitude": -15.9, "longitude": -47.9},
+                                 "sensors": [{"id": 9, "parameter": {"name": "pm25"}}],
+                                 "datetimeLast": {"utc": "2026-09-18T12:00:00Z"}}]}
+        return {"results": []}
+
+    monkeypatch.setattr(sources, "_get", fake_get)
+    idx = sources.openaq_locations("brasilia", -15.78, -47.93, radius_m=50000, api_key="k")
+    assert any("bbox" in c for c in calls)
+    assert len(idx["locations"]) == 1
+    assert "bbox" in idx["detail"]["search"]
+
+
+def test_waqi_flags_a_station_that_is_not_near_the_venue(monkeypatch):
+    """geo: lookup returns the nearest station at any distance.
+
+    Salvador and Recife (677 km apart) both received the same feed, so a single distant station
+    was being reported as two cities' air quality.
+    """
+    feed = {"status": "ok", "data": {
+        "aqi": 30, "iaqi": {"pm25": {"v": 30}},
+        "city": {"name": "Somewhere far", "geo": [-23.55, -46.63]},   # Sao Paulo
+        "time": {"iso": "2026-09-18T12:00:00-03:00"}, "attributions": []}}
+    monkeypatch.setattr(sources, "_get", lambda *a, **k: feed)
+
+    rec = sources.waqi_nearest("recife", -8.0476, -34.8770, token="t")
+    assert rec["status"] == "far_station"
+    assert rec["detail"]["station_km"] > 1000
+    assert "does not describe this venue" in rec["detail"]["note"]
+
+    near = sources.waqi_nearest("sao_paulo", -23.55, -46.63, token="t")
+    assert near["status"] is None
+    assert near["detail"]["station_km"] < 5
+
+
+def test_waqi_aqi_is_converted_before_comparison_with_who_levels(monkeypatch):
+    """WAQI returns AQI sub-indices. Treating AQI 65 as 65 ug/m3 overstates PM2.5 ~4x."""
+    feed = {"status": "ok", "data": {
+        "aqi": 65, "iaqi": {"pm25": {"v": 65}},
+        "city": {"name": "Brasilia", "geo": [-15.78, -47.93]},
+        "time": {"iso": "2026-09-18T12:00:00-03:00"}, "attributions": []}}
+    monkeypatch.setattr(sources, "_get", lambda *a, **k: feed)
+    rec = sources.waqi_nearest("brasilia", -15.78, -47.93, token="t")
+    assert rec["units"] == "aqi"
+    assert rec["values"]["pm2_5"] == 65
+    assert rec["values_ugm3_est"]["pm2_5"] == pytest.approx(16.6, abs=0.2)
+
+    assert sources.pm25_from_aqi(50) == pytest.approx(9.0, abs=0.1)
+    assert sources.pm25_from_aqi(100) == pytest.approx(35.4, abs=0.1)
+    assert sources.pm25_from_aqi(0) == 0.0
+    assert sources.pm25_from_aqi(None) is None
+    assert sources.pm25_from_aqi(-5) is None
+
+
+def test_transient_failure_is_retried_once(monkeypatch):
+    """Brasilia errored while the other seven cities succeeded - a transient upstream failure."""
+    state = {"n": 0}
+
+    def flaky(req, timeout=None):
+        state["n"] += 1
+        raise OSError("transient" if state["n"] == 1 else "still down")
+
+    monkeypatch.setattr(sources.time, "sleep", lambda s: None)
+    monkeypatch.setattr(sources.urllib.request, "urlopen", flaky)
+    with pytest.raises(OSError):
+        sources._get("https://example.invalid/x")
+    assert state["n"] == 2, "the request should have been attempted twice"

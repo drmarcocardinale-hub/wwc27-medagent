@@ -13,11 +13,16 @@ import os
 import sys
 from importlib import resources as ir
 
-from mcp.server.fastmcp import FastMCP
+try:                                              # mcp >= 2.0
+    from mcp.server.mcpserver import MCPServer as _ServerClass
+    MCP_MAJOR = 2
+except ModuleNotFoundError:                       # mcp 1.x
+    from mcp.server.fastmcp import FastMCP as _ServerClass
+    MCP_MAJOR = 1
 
 from . import core
 
-mcp = FastMCP(
+mcp = _ServerClass(
     "wwc27-medagent",
     instructions=(
         "You are the paper agent for a Sports Medicine Current Opinion on medical screening and "
@@ -173,9 +178,13 @@ def venue_briefing(city: str) -> str:
 
 def main() -> None:
     if "--http" in sys.argv:
-        mcp.settings.host = "0.0.0.0"
-        mcp.settings.port = int(os.environ.get("PORT", "8000"))
-        mcp.run(transport="streamable-http")
+        host, port = "0.0.0.0", int(os.environ.get("PORT", "8000"))
+        if MCP_MAJOR >= 2:            # host/port are run() kwargs in mcp 2.x
+            mcp.run(transport="streamable-http", host=host, port=port)
+        else:                         # ...and live on .settings in mcp 1.x
+            mcp.settings.host = host
+            mcp.settings.port = port
+            mcp.run(transport="streamable-http")
     else:
         mcp.run()
 

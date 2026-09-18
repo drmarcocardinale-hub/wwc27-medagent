@@ -27,13 +27,14 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
-USER_AGENT = "WWC27-MedAgent/0.3 (+https://github.com/OWNER/wwc27-medagent)"
+USER_AGENT = "WWC27-MedAgent/0.3 (+https://github.com/drmarcocardinale-hub/wwc27-medagent)"
 OPEN_METEO = "https://air-quality-api.open-meteo.com/v1/air-quality"
 OPENAQ = "https://api.openaq.org/v3"
 WAQI = "https://api.waqi.info"
@@ -44,21 +45,70 @@ ATTRIBUTION = {
     "waqi": "Real-time data via the World Air Quality Index project (aqicn.org) and the originating monitoring agency; non-commercial use with attribution.",
 }
 POLLUTANTS = ("pm2_5", "pm10", "no2", "o3")
+_PARAM_ALIASES = {"pm25": "pm2_5", "pm2.5": "pm2_5", "pm2_5": "pm2_5", "pm10": "pm10",
+                  "no2": "no2", "nitrogen_dioxide": "no2", "o3": "o3", "ozone": "o3"}
+
+
+def _canon(parameter: str | None) -> str:
+    """Normalise a source's pollutant name ('pm25', 'PM2.5', 'ozone') to our key."""
+    p = str(parameter or "").strip().lower()
+    return _PARAM_ALIASES.get(p, p)
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _get(url: str, headers: dict[str, str] | None = None, timeout: float = 30.0) -> Any:
+def _get(url: str, headers: dict[str, str] | None = None, timeout: float = 30.0,
+         retries: int = 1, backoff: float = 2.0) -> Any:
+    """GET and parse JSON, retrying once on a transient failure.
+
+    A single venue failing while the others succeed is almost always a transient upstream error
+    or rate limit, and an unretried failure leaves a hole in that day's archive.
+    """
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
-    with urllib.request.urlopen(req, timeout=timeout) as fh:
-        return json.load(fh)
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as fh:
+                return json.load(fh)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+            if attempt >= retries:
+                raise
+            time.sleep(backoff * (attempt + 1))
 
 
 def _error(source: str, venue: str, exc: Exception | str) -> dict:
     return {"source": source, "venue": venue, "retrieved_at": _now(), "status": "error",
             "detail": str(exc)}
+
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in km. Used to check that a station is actually near the venue."""
+    from math import asin, cos, radians, sin, sqrt
+    dlat, dlon = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    return round(2 * 6371.0088 * asin(sqrt(a)), 1)
+
+
+# US EPA PM2.5 AQI breakpoints (2024 revision): (AQI_lo, AQI_hi, C_lo, C_hi) in ug/m3.
+_PM25_AQI_BREAKS = [(0, 50, 0.0, 9.0), (51, 100, 9.1, 35.4), (101, 150, 35.5, 55.4),
+                    (151, 200, 55.5, 125.4), (201, 300, 125.5, 225.4), (301, 500, 225.5, 325.4)]
+
+
+def pm25_from_aqi(aqi: float | None) -> float | None:
+    """Invert the US EPA PM2.5 AQI to an approximate 24 h concentration in ug/m3.
+
+    WAQI reports AQI sub-indices, not concentrations. Comparing a raw AQI number with the WHO
+    guideline levels (which are in ug/m3) overstates pollution roughly three-fold in the range
+    that matters for scheduling training, so the conversion is done explicitly and the result is
+    labelled as an estimate.
+    """
+    if aqi is None or not isinstance(aqi, (int, float)) or aqi < 0:
+        return None
+    for lo, hi, c_lo, c_hi in _PM25_AQI_BREAKS:
+        if lo <= aqi <= hi:
+            return round(c_lo + (aqi - lo) * (c_hi - c_lo) / (hi - lo), 1)
+    return None
 
 
 # --------------------------------------------------------------------------- Open-Meteo
@@ -103,27 +153,53 @@ def open_meteo_range(venue: str, lat: float, lon: float, start: str, end: str,
 
 
 # --------------------------------------------------------------------------- OpenAQ v3
-def openaq_locations(venue: str, lat: float, lon: float, radius_m: int = 25000,
+def openaq_locations(venue: str, lat: float, lon: float, radius_m: int = 50000,
                      api_key: str | None = None, limit: int = 20, timeout: float = 30.0) -> dict:
     """Monitoring stations within `radius_m` of the venue (max 25 km in the v3 API)."""
     key = api_key or os.environ.get("OPENAQ_API_KEY")
     if not key:
         return _error("openaq", venue, "no OPENAQ_API_KEY set (free key: explore.openaq.org/register)")
+    def _fetch(query: str) -> Any:
+        return _get(f"{OPENAQ}/locations?{query}", headers={"X-API-Key": key}, timeout=timeout)
+
     q = urllib.parse.urlencode({"coordinates": f"{lat:.4f},{lon:.4f}",
                                 "radius": min(radius_m, 25000), "limit": limit})
     try:
-        data = _get(f"{OPENAQ}/locations?{q}", headers={"X-API-Key": key}, timeout=timeout)
+        data = _fetch(q)
+        search = f"radius {min(radius_m, 25000) / 1000:.0f} km"
+        # The v3 radius search is capped at 25 km, which misses metropolitan stations around
+        # several host cities. Fall back to a bounding box (~55 km) before giving up.
+        if not data.get("results") and radius_m > 25000:
+            d = round(radius_m / 111000.0, 3)
+            q2 = urllib.parse.urlencode({
+                "bbox": f"{lon - d:.3f},{lat - d:.3f},{lon + d:.3f},{lat + d:.3f}", "limit": limit})
+            data = _fetch(q2)
+            search = f"bbox +/-{d:.2f} deg (~{radius_m / 1000:.0f} km)"
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
         return _error("openaq", venue, e)
-    locs = [{"id": r.get("id"), "name": r.get("name"),
-             "provider": (r.get("provider") or {}).get("name"),
-             "sensors": [s.get("parameter", {}).get("name") for s in r.get("sensors", [])],
-             "last": (r.get("datetimeLast") or {}).get("utc")} for r in data.get("results", [])]
+
+    locs = []
+    for r in data.get("results", []):
+        coords = r.get("coordinates") or {}
+        slat, slon = coords.get("latitude"), coords.get("longitude")
+        locs.append({
+            "id": r.get("id"), "name": r.get("name"),
+            "provider": (r.get("provider") or {}).get("name"),
+            # Keep sensor ids: the /latest endpoint identifies readings by sensorsId only.
+            "sensors": [{"id": s.get("id"),
+                         "parameter": ((s.get("parameter") or {}).get("name") or "")}
+                        for s in (r.get("sensors") or [])],
+            "distance_km": (haversine_km(lat, lon, slat, slon)
+                            if isinstance(slat, (int, float)) and isinstance(slon, (int, float))
+                            else None),
+            "last": (r.get("datetimeLast") or {}).get("utc")})
+    locs.sort(key=lambda l: (l["distance_km"] is None, l["distance_km"]))
     return {"source": "openaq", "venue": venue, "retrieved_at": _now(), "kind": "station_index",
-            "locations": locs, "attribution": ATTRIBUTION["openaq"]}
+            "locations": locs, "detail": {"search": search},
+            "attribution": ATTRIBUTION["openaq"]}
 
 
-def openaq_latest(venue: str, lat: float, lon: float, radius_m: int = 25000,
+def openaq_latest(venue: str, lat: float, lon: float, radius_m: int = 50000,
                   api_key: str | None = None, timeout: float = 30.0) -> dict:
     """Latest station values near the venue, averaged across stations per pollutant."""
     key = api_key or os.environ.get("OPENAQ_API_KEY")
@@ -136,17 +212,23 @@ def openaq_latest(venue: str, lat: float, lon: float, radius_m: int = 25000,
                 "detail": {"radius_m": radius_m},
                 "attribution": ATTRIBUTION["openaq"]}
     buckets: dict[str, list[float]] = {p: [] for p in POLLUTANTS}
-    seen, latest_time = [], None
+    seen, latest_time, max_km = [], None, None
     for loc in idx["locations"]:
+        # /latest returns {sensorsId, value, datetime} with no parameter name, so resolve the
+        # sensor ids from the station index. Without this every reading is silently dropped.
+        sensor_param = {s["id"]: _canon(s["parameter"]) for s in loc.get("sensors", [])
+                        if s.get("id") is not None}
         try:
             data = _get(f"{OPENAQ}/locations/{loc['id']}/latest", headers={"X-API-Key": key},
                         timeout=timeout)
         except (urllib.error.URLError, TimeoutError, OSError, ValueError):
             continue
         seen.append(loc["name"])
+        if isinstance(loc.get("distance_km"), (int, float)):
+            max_km = max(max_km or 0, loc["distance_km"])
         for r in data.get("results", []):
-            name = str(((r.get("parameter") or {}).get("name") or r.get("parameter") or "")).lower()
-            name = {"pm25": "pm2_5", "pm2.5": "pm2_5"}.get(name, name)
+            name = _canon(((r.get("parameter") or {}).get("name") if isinstance(r.get("parameter"), dict)
+                           else r.get("parameter")) or sensor_param.get(r.get("sensorsId"), ""))
             val = r.get("value")
             t = (r.get("datetime") or {}).get("utc") if isinstance(r.get("datetime"), dict) else r.get("datetime")
             if name in buckets and isinstance(val, (int, float)):
@@ -155,14 +237,16 @@ def openaq_latest(venue: str, lat: float, lon: float, radius_m: int = 25000,
     values = {p: round(sum(v) / len(v), 1) for p, v in buckets.items() if v}
     return {"source": "openaq", "venue": venue, "retrieved_at": _now(),
             "observed_at": latest_time, "kind": "station", "units": "ug/m3", "values": values,
+            "status": None if values else "no_values",
             "detail": {"stations": seen, "n_stations": len(seen), "radius_m": radius_m,
+                       "furthest_station_km": max_km, "search": (idx.get("detail") or {}).get("search"),
                        "note": "mean across stations within the radius; station siting varies"},
             "attribution": ATTRIBUTION["openaq"]}
 
 
 # --------------------------------------------------------------------------- WAQI
 def waqi_nearest(venue: str, lat: float, lon: float, token: str | None = None,
-                 timeout: float = 30.0) -> dict:
+                 timeout: float = 30.0, max_station_km: float = 50.0) -> dict:
     """Nearest WAQI station feed. Note: iaqi values are AQI sub-indices, not ug/m3."""
     tok = token or os.environ.get("WAQI_TOKEN")
     if not tok:
@@ -176,14 +260,28 @@ def waqi_nearest(venue: str, lat: float, lon: float, token: str | None = None,
         return _error("waqi", venue, f"api status {data.get('status')}: {data.get('data')}")
     d = data.get("data", {})
     iaqi = {k: (v or {}).get("v") for k, v in (d.get("iaqi") or {}).items()}
+    # geo:lat;lon returns the nearest station at ANY distance, so a city with no station of its
+    # own silently receives another city's air. Measure the distance and flag it.
+    geo = (d.get("city") or {}).get("geo") or []
+    station_km = (haversine_km(lat, lon, geo[0], geo[1])
+                  if len(geo) == 2 and all(isinstance(g, (int, float)) for g in geo) else None)
+    far = station_km is not None and station_km > max_station_km
+    pm25_aqi = iaqi.get("pm25")
     return {"source": "waqi", "venue": venue, "retrieved_at": _now(),
             "observed_at": (d.get("time") or {}).get("iso"), "kind": "station", "units": "aqi",
-            "values": {"pm2_5": iaqi.get("pm25"), "pm10": iaqi.get("pm10"),
+            "status": "far_station" if far else None,
+            "values": {"pm2_5": pm25_aqi, "pm10": iaqi.get("pm10"),
                        "no2": iaqi.get("no2"), "o3": iaqi.get("o3")},
+            "values_ugm3_est": {"pm2_5": pm25_from_aqi(pm25_aqi)},
             "detail": {"aqi": d.get("aqi"), "station": (d.get("city") or {}).get("name"),
+                       "station_km": station_km, "max_station_km": max_station_km,
                        "attributions": [a.get("name") for a in d.get("attributions", [])],
-                       "note": "AQI sub-indices (US EPA scale), not concentrations; convert before "
-                               "comparing with WHO guideline levels"},
+                       "note": "AQI sub-indices (US EPA scale), not concentrations; "
+                               "values_ugm3_est inverts the EPA PM2.5 breakpoints so the reading "
+                               "can be compared with WHO guideline levels"
+                               + (f". Nearest station is {station_km} km away, beyond the "
+                                  f"{max_station_km} km limit: it does not describe this venue."
+                                  if far else "")},
             "attribution": ATTRIBUTION["waqi"]}
 
 
