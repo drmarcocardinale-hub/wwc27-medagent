@@ -10,20 +10,30 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.12"]
+        # The MCP SDK renamed FastMCP to MCPServer in 2.0. The server supports both, and
+        # both are tested so an upstream major release cannot break users silently.
+        mcp-version: ["mcp>=1.2,<2", "mcp>=2,<3"]
+    name: py${{ matrix.python-version }} / ${{ matrix.mcp-version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
-        run: pip install -e ".[test]"
+        run: |
+          pip install -e ".[test]"
+          pip install "${{ matrix.mcp-version }}"
+          python -c "import mcp, wwc27_medagent.server as s; print('mcp', mcp.__version__ if hasattr(mcp,'__version__') else '?', '-> MCP_MAJOR', s.MCP_MAJOR)"
       - name: Unit, data and benchmark-integrity tests
         run: pytest -q
       - name: Tool-layer benchmark check
         run: python benchmark/run_tool_check.py
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: tool-check-${{ matrix.python-version }}
+          name: tool-check-py${{ matrix.python-version }}-${{ strategy.job-index }}
           path: benchmark/results/tool_check.json
+          if-no-files-found: warn
