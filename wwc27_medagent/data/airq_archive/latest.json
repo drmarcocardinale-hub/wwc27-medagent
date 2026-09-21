@@ -1,41 +1,41 @@
 {
- "pulled_at": "2026-09-20T22:22:53+00:00",
+ "pulled_at": "2026-09-21T15:52:32+00:00",
  "records": [
   {
    "source": "openmeteo",
    "venue": "rio_de_janeiro",
-   "retrieved_at": "2026-09-20T22:22:53+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:52:32+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 10.8,
-    "pm10": 12.8,
-    "no2": 12.6,
-    "o3": 57.0
+    "pm2_5": 15.8,
+    "pm10": 18.5,
+    "no2": 8.1,
+    "o3": 117.0
    },
    "detail": {
-    "co": 273.0,
+    "co": 459.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
    "attribution": "Air-quality data from Open-Meteo (open-meteo.com), based on CAMS (Copernicus Atmosphere Monitoring Service) ENSEMBLE data.",
    "city": "Rio de Janeiro",
-   "planning_band": "good"
+   "planning_band": "moderate"
   },
   {
    "source": "openaq",
    "venue": "rio_de_janeiro",
-   "retrieved_at": "2026-09-20T22:22:54+00:00",
+   "retrieved_at": "2026-09-21T15:52:33+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
-   "observed_at": "2026-09-20T22:00:00Z",
+   "observed_at": "2026-09-21T15:00:00Z",
    "values": {
-    "pm2_5": 6.2,
-    "pm10": 17.7,
-    "no2": 61.2,
-    "o3": 40.5
+    "pm2_5": 2.9,
+    "pm10": 12.9,
+    "no2": 56.7,
+    "o3": 38.2
    },
    "status": null,
    "detail": {
@@ -59,7 +59,7 @@
       "distance_km": 4.5
      },
      {
-      "name": "Centro",
+      "name": "Centro Kunak ",
       "provider": "Rio City Hall",
       "grade": "reference",
       "distance_km": 5.2
@@ -125,7 +125,7 @@
       "distance_km": 13.3
      },
      {
-      "name": "Irajá",
+      "name": "Irajá kunak ",
       "provider": "Rio City Hall",
       "grade": "reference",
       "distance_km": 13.4
@@ -148,17 +148,17 @@
      {
       "name": "São Cristóvão",
       "last": "2024-12-09T11:00:00Z",
-      "age_hours": 15611.4
+      "age_hours": 15628.9
      },
      {
       "name": "Caju",
       "last": "2026-08-01T15:00:00Z",
-      "age_hours": 1207.4
+      "age_hours": 1224.9
      },
      {
       "name": "Abolição ",
       "last": "2026-08-25T16:00:00Z",
-      "age_hours": 630.4
+      "age_hours": 647.9
      }
     ],
     "n_stale": 3,
@@ -174,22 +174,22 @@
   {
    "source": "waqi",
    "venue": "rio_de_janeiro",
-   "retrieved_at": "2026-09-20T22:23:00+00:00",
-   "observed_at": "2026-09-20T18:00:00-03:00",
+   "retrieved_at": "2026-09-21T15:52:37+00:00",
+   "observed_at": "2026-09-21T08:00:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
-    "pm2_5": 55,
+    "pm2_5": 17,
     "pm10": null,
-    "no2": 11.9,
-    "o3": 4.1
+    "no2": 8.7,
+    "o3": 13.9
    },
    "values_ugm3_est": {
-    "pm2_5": 11.2
+    "pm2_5": 3.1
    },
    "detail": {
-    "aqi": 55,
+    "aqi": 17,
     "station": "Guaratinguetá, São Paulo, Brazil",
     "station_km": 201.3,
     "max_station_km": 50.0,
@@ -205,18 +205,18 @@
   {
    "source": "openmeteo",
    "venue": "sao_paulo",
-   "retrieved_at": "2026-09-20T22:23:33+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:52:38+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 11.6,
-    "pm10": 11.8,
-    "no2": 24.2,
-    "o3": 45.0
+    "pm2_5": 5.6,
+    "pm10": 5.7,
+    "no2": 4.8,
+    "o3": 124.0
    },
    "detail": {
-    "co": 273.0,
+    "co": 158.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -227,7 +227,7 @@
   {
    "source": "openaq",
    "venue": "sao_paulo",
-   "retrieved_at": "2026-09-20T22:23:33+00:00",
+   "retrieved_at": "2026-09-21T15:52:38+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -241,52 +241,52 @@
      {
       "name": "Itaquera",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      },
      {
       "name": "Itaim Paulista",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      },
      {
       "name": "S.André-Capuava",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      },
      {
       "name": "Guarulhos-Paço Municipal",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      },
      {
       "name": "São Caetano do Sul",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      },
      {
       "name": "Mooca",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      },
      {
       "name": "Guarulhos-Pimentas",
       "last": "2022-10-04T19:00:00Z",
-      "age_hours": 34731.4
+      "age_hours": 34748.9
      },
      {
       "name": "S.André-Paço Municipal",
       "last": "2017-10-27T18:00:00Z",
-      "age_hours": 78004.4
+      "age_hours": 78021.9
      },
      {
       "name": "Mauá",
       "last": "2023-04-05T17:00:00Z",
-      "age_hours": 30341.4
+      "age_hours": 30358.9
      },
      {
       "name": "Parque D.Pedro II",
       "last": "2023-04-05T20:00:00Z",
-      "age_hours": 30338.4
+      "age_hours": 30355.9
      }
     ],
     "n_stale": 20,
@@ -301,22 +301,22 @@
   {
    "source": "waqi",
    "venue": "sao_paulo",
-   "retrieved_at": "2026-09-20T22:23:33+00:00",
-   "observed_at": "2026-09-20T18:00:00-03:00",
+   "retrieved_at": "2026-09-21T15:52:38+00:00",
+   "observed_at": "2026-09-21T11:00:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": null,
    "values": {
-    "pm2_5": 34,
+    "pm2_5": 70,
     "pm10": null,
     "no2": null,
-    "o3": 9
+    "o3": 26
    },
    "values_ugm3_est": {
-    "pm2_5": 6.1
+    "pm2_5": 19.3
    },
    "detail": {
-    "aqi": 34,
+    "aqi": 70,
     "station": "Itaquera, São Paulo, Brazil",
     "station_km": 4.0,
     "max_station_km": 50.0,
@@ -328,23 +328,23 @@
    },
    "attribution": "Real-time data via the World Air Quality Index project (aqicn.org) and the originating monitoring agency; non-commercial use with attribution.",
    "city": "Sao Paulo",
-   "planning_band_est": "good"
+   "planning_band_est": "moderate"
   },
   {
    "source": "openmeteo",
    "venue": "brasilia",
-   "retrieved_at": "2026-09-20T22:23:34+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:52:39+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 5.3,
-    "pm10": 5.6,
-    "no2": 3.9,
-    "o3": 80.0
+    "pm2_5": 7.7,
+    "pm10": 8.4,
+    "no2": 1.2,
+    "o3": 104.0
    },
    "detail": {
-    "co": 140.0,
+    "co": 144.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -355,7 +355,7 @@
   {
    "source": "openaq",
    "venue": "brasilia",
-   "retrieved_at": "2026-09-20T22:23:35+00:00",
+   "retrieved_at": "2026-09-21T15:52:39+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -370,22 +370,22 @@
   {
    "source": "waqi",
    "venue": "brasilia",
-   "retrieved_at": "2026-09-20T22:23:35+00:00",
-   "observed_at": "2026-09-20T19:00:00-03:00",
+   "retrieved_at": "2026-09-21T15:52:40+00:00",
+   "observed_at": "2026-09-21T08:00:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
-    "pm2_5": 53,
-    "pm10": 37,
-    "no2": 16.5,
-    "o3": 8.2
+    "pm2_5": 9,
+    "pm10": 18,
+    "no2": 7.8,
+    "o3": 7.8
    },
    "values_ugm3_est": {
-    "pm2_5": 10.2
+    "pm2_5": 1.6
    },
    "detail": {
-    "aqi": 53,
+    "aqi": 18,
     "station": "São José do Rio Preto, São Paulo, Brazil",
     "station_km": 578.1,
     "max_station_km": 50.0,
@@ -401,18 +401,18 @@
   {
    "source": "openmeteo",
    "venue": "belo_horizonte",
-   "retrieved_at": "2026-09-20T22:23:36+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:53:13+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 5.5,
-    "pm10": 6.6,
-    "no2": 6.6,
-    "o3": 65.0
+    "pm2_5": 7.2,
+    "pm10": 9.3,
+    "no2": 2.3,
+    "o3": 111.0
    },
    "detail": {
-    "co": 126.0,
+    "co": 158.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -423,7 +423,7 @@
   {
    "source": "openaq",
    "venue": "belo_horizonte",
-   "retrieved_at": "2026-09-20T22:23:36+00:00",
+   "retrieved_at": "2026-09-21T15:53:13+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -438,22 +438,22 @@
   {
    "source": "waqi",
    "venue": "belo_horizonte",
-   "retrieved_at": "2026-09-20T22:23:36+00:00",
-   "observed_at": "2026-09-20T18:00:00-03:00",
+   "retrieved_at": "2026-09-21T15:53:14+00:00",
+   "observed_at": "2026-09-21T08:00:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
-    "pm2_5": 55,
+    "pm2_5": 17,
     "pm10": null,
-    "no2": 11.9,
-    "o3": 4.1
+    "no2": 8.7,
+    "o3": 13.9
    },
    "values_ugm3_est": {
-    "pm2_5": 11.2
+    "pm2_5": 3.1
    },
    "detail": {
-    "aqi": 55,
+    "aqi": 17,
     "station": "Guaratinguetá, São Paulo, Brazil",
     "station_km": 350.1,
     "max_station_km": 50.0,
@@ -469,18 +469,18 @@
   {
    "source": "openmeteo",
    "venue": "porto_alegre",
-   "retrieved_at": "2026-09-20T22:23:37+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:53:14+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 14.2,
-    "pm10": 14.4,
-    "no2": 11.9,
-    "o3": 66.0
+    "pm2_5": 6.9,
+    "pm10": 6.9,
+    "no2": 3.9,
+    "o3": 87.0
    },
    "detail": {
-    "co": 277.0,
+    "co": 212.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -491,7 +491,7 @@
   {
    "source": "openaq",
    "venue": "porto_alegre",
-   "retrieved_at": "2026-09-20T22:23:37+00:00",
+   "retrieved_at": "2026-09-21T15:53:15+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -506,22 +506,22 @@
   {
    "source": "waqi",
    "venue": "porto_alegre",
-   "retrieved_at": "2026-09-20T22:23:38+00:00",
-   "observed_at": "2026-09-20T19:00:00-03:00",
+   "retrieved_at": "2026-09-21T15:53:15+00:00",
+   "observed_at": "2026-09-21T08:00:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
     "pm2_5": null,
-    "pm10": 15,
-    "no2": 6.4,
-    "o3": 15.9
+    "pm10": 14,
+    "no2": 6.9,
+    "o3": 13
    },
    "values_ugm3_est": {
     "pm2_5": null
    },
    "detail": {
-    "aqi": 16,
+    "aqi": 14,
     "station": "Tatuí, São Paulo, Brazil",
     "station_km": 816.8,
     "max_station_km": 50.0,
@@ -537,18 +537,18 @@
   {
    "source": "openmeteo",
    "venue": "salvador",
-   "retrieved_at": "2026-09-20T22:23:38+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:53:16+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 7.9,
-    "pm10": 10.8,
-    "no2": 5.1,
-    "o3": 43.0
+    "pm2_5": 9.2,
+    "pm10": 12.3,
+    "no2": 2.0,
+    "o3": 86.0
    },
    "detail": {
-    "co": 102.0,
+    "co": 112.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -559,7 +559,7 @@
   {
    "source": "openaq",
    "venue": "salvador",
-   "retrieved_at": "2026-09-20T22:23:39+00:00",
+   "retrieved_at": "2026-09-21T15:53:16+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -592,22 +592,22 @@
   {
    "source": "waqi",
    "venue": "salvador",
-   "retrieved_at": "2026-09-20T22:23:39+00:00",
-   "observed_at": "2026-09-20T18:30:00-03:00",
+   "retrieved_at": "2026-09-21T15:53:17+00:00",
+   "observed_at": "2026-09-21T08:30:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
-    "pm2_5": 2.33,
+    "pm2_5": 3.46,
     "pm10": null,
-    "no2": 0.99,
-    "o3": 2.66
+    "no2": 2.21,
+    "o3": 3.9
    },
    "values_ugm3_est": {
-    "pm2_5": 0.4
+    "pm2_5": 0.6
    },
    "detail": {
-    "aqi": 3,
+    "aqi": 4,
     "station": "Laranjeiras, Espírito Santo, Brazil",
     "station_km": 823.6,
     "max_station_km": 50.0,
@@ -623,18 +623,18 @@
   {
    "source": "openmeteo",
    "venue": "recife",
-   "retrieved_at": "2026-09-20T22:24:12+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:53:17+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 13.1,
-    "pm10": 17.8,
-    "no2": 6.1,
-    "o3": 42.0
+    "pm2_5": 7.6,
+    "pm10": 10.8,
+    "no2": 1.2,
+    "o3": 77.0
    },
    "detail": {
-    "co": 131.0,
+    "co": 112.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -645,7 +645,7 @@
   {
    "source": "openaq",
    "venue": "recife",
-   "retrieved_at": "2026-09-20T22:24:13+00:00",
+   "retrieved_at": "2026-09-21T15:53:18+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -660,22 +660,22 @@
   {
    "source": "waqi",
    "venue": "recife",
-   "retrieved_at": "2026-09-20T22:24:13+00:00",
-   "observed_at": "2026-09-20T18:30:00-03:00",
+   "retrieved_at": "2026-09-21T15:53:18+00:00",
+   "observed_at": "2026-09-21T08:30:00-03:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
-    "pm2_5": 2.33,
+    "pm2_5": 3.46,
     "pm10": null,
-    "no2": 0.99,
-    "o3": 2.66
+    "no2": 2.21,
+    "o3": 3.9
    },
    "values_ugm3_est": {
-    "pm2_5": 0.4
+    "pm2_5": 0.6
    },
    "detail": {
-    "aqi": 3,
+    "aqi": 4,
     "station": "Laranjeiras, Espírito Santo, Brazil",
     "station_km": 1464.5,
     "max_station_km": 50.0,
@@ -691,18 +691,18 @@
   {
    "source": "openmeteo",
    "venue": "fortaleza",
-   "retrieved_at": "2026-09-20T22:24:14+00:00",
-   "observed_at": "2026-09-20T19:00",
+   "retrieved_at": "2026-09-21T15:53:19+00:00",
+   "observed_at": "2026-09-21T12:00",
    "kind": "model_forecast",
    "units": "ug/m3",
    "values": {
-    "pm2_5": 7.2,
-    "pm10": 10.4,
-    "no2": 1.9,
-    "o3": 65.0
+    "pm2_5": 6.1,
+    "pm10": 8.7,
+    "no2": 0.6,
+    "o3": 76.0
    },
    "detail": {
-    "co": 111.0,
+    "co": 112.0,
     "dust": 0.0,
     "model": "CAMS via Open-Meteo"
    },
@@ -713,7 +713,7 @@
   {
    "source": "openaq",
    "venue": "fortaleza",
-   "retrieved_at": "2026-09-20T22:24:15+00:00",
+   "retrieved_at": "2026-09-21T15:53:19+00:00",
    "kind": "station",
    "units": "ug/m3",
    "attribution": "Station data via OpenAQ (openaq.org); original measurements belong to the reporting agencies.",
@@ -742,22 +742,22 @@
   {
    "source": "waqi",
    "venue": "fortaleza",
-   "retrieved_at": "2026-09-20T22:24:15+00:00",
-   "observed_at": "2026-09-20T16:00:00-04:00",
+   "retrieved_at": "2026-09-21T15:53:19+00:00",
+   "observed_at": "2026-09-21T07:00:00-04:00",
    "kind": "station",
    "units": "aqi",
    "status": "far_station",
    "values": {
     "pm2_5": null,
     "pm10": null,
-    "no2": 2.7,
-    "o3": 17.1
+    "no2": 2.2,
+    "o3": 2.9
    },
    "values_ugm3_est": {
     "pm2_5": null
    },
    "detail": {
-    "aqi": 17,
+    "aqi": 3,
     "station": "Matoury Kalou, Guyane, France",
     "station_km": 1810.2,
     "max_station_km": 50.0,
