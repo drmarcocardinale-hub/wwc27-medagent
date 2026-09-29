@@ -28,8 +28,8 @@ FILES = ["venues.json", "screening.json", "evidence.json", "references.json", "a
 
 REPO = "https://github.com/drmarcocardinale-hub/wwc27-medagent"
 CONCEPT_DOI = "10.5281/zenodo.22832165"
-# Set this once the Hugging Face Space is live (scripts/make_space.py), then rebuild.
-HOSTED_MCP_URL = ""
+# Set once the Cloud Run service is live (deploy/cloudrun/), then rebuild the site.
+HOSTED_MCP_URL = "https://wwc27-medagent-919325462297.europe-west1.run.app/mcp"
 
 OPTION1_LIVE = """    <div class="card">
       <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint (nothing to install)</h3>
@@ -40,9 +40,9 @@ OPTION1_LIVE = """    <div class="card">
       In <strong>Claude Desktop</strong>: Settings &rarr; Connectors &rarr; Add custom connector.
       In <strong>Claude Code</strong>:
       <code style="font-family:var(--mono)">claude mcp add --transport http wwc27-medagent {url}</code></p>
-      <p style="font-size:.82rem;color:var(--muted);margin:8px 0 0">The free host sleeps after a
-      couple of days idle, so the first question after a quiet spell takes a few seconds while it
-      wakes.</p>
+      <p style="font-size:.82rem;color:var(--muted);margin:8px 0 0">The service scales to zero
+      when unused, so the first question after an idle spell waits a few seconds for a cold start.
+      Later questions answer immediately.</p>
     </div>"""
 
 OPTION1_PENDING = """    <div class="card">

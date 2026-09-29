@@ -91,7 +91,7 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
     <a class="pill" href="https://github.com/drmarcocardinale-hub/wwc27-medagent">Code on GitHub</a>
     <a class="pill" href="https://doi.org/10.5281/zenodo.22832165">DOI 10.5281/zenodo.22832165</a>
     <a class="pill" href="#use" id="usePill">How to ask it questions</a>
-    <span class="pill" id="built">built 2026-09-18</span>
+    <span class="pill" id="built">built 2026-09-29</span>
   </div>
   <div class="note"><strong>Decision support only.</strong> These pages summarise published
   evidence and climate normals. They do not replace clinical judgement, on-site WBGT measurement
@@ -153,11 +153,17 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
     and any patient or player detail — inside your own environment.</div>
 
     <div class="card">
-      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint
-        <span class="tag warn">not yet available</span></h3>
-      <p style="font-size:.9rem;margin:0">A hosted version, which would need nothing installed, is
-      not running yet. Until it is, use Option 2 below. This page will show the address here once
-      it is live.</p>
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint (nothing to install)</h3>
+      <p style="font-size:.9rem;margin:0 0 8px">Paste this URL into your assistant's connector
+      settings:</p>
+      <p><code style="font-family:var(--mono);font-size:.85rem">https://wwc27-medagent-919325462297.europe-west1.run.app/mcp</code></p>
+      <p style="font-size:.85rem;color:var(--muted);margin:8px 0 0">
+      In <strong>Claude Desktop</strong>: Settings &rarr; Connectors &rarr; Add custom connector.
+      In <strong>Claude Code</strong>:
+      <code style="font-family:var(--mono)">claude mcp add --transport http wwc27-medagent https://wwc27-medagent-919325462297.europe-west1.run.app/mcp</code></p>
+      <p style="font-size:.82rem;color:var(--muted);margin:8px 0 0">The service scales to zero
+      when unused, so the first question after an idle spell waits a few seconds for a cold start.
+      Later questions answer immediately.</p>
     </div>
 
     <div class="card">
