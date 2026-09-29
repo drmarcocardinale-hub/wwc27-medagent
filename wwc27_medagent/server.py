@@ -43,9 +43,11 @@ mcp = _ServerClass(
     ),
 )
 
-# FastMCP (mcp 1.x) exposes the low-level server it wraps; setting the version there is the
-# only way to populate serverInfo on that major. No-op when the constructor already took it.
-_low_level = getattr(mcp, "_mcp_server", None)
+# FastMCP (mcp 1.x) exposes the low-level server it wraps as _mcp_server and has no version
+# parameter, so setting it there is the only way to populate serverInfo on that major.
+# mcp 2.x renames the attribute to _lowlevel_server and takes version= on the constructor,
+# which makes this a no-op there. Ask for whichever name exists.
+_low_level = getattr(mcp, "_mcp_server", None) or getattr(mcp, "_lowlevel_server", None)
 if _low_level is not None and not getattr(_low_level, "version", None):
     _low_level.version = core.__version__
 

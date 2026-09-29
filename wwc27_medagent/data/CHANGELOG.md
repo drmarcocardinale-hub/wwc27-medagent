@@ -2,6 +2,14 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.5.2 — 2026-09-29
+The deployed service could not say which version had answered it.
+
+- **`serverInfo.version` was empty over MCP.** No version was ever passed to the server class: FastMCP (mcp 1.x) has no `version` parameter and leaves the low-level server's value `None`, which serialises as `""`; `MCPServer` (mcp 2.x) does accept one. Both paths are now set, guarded by signature inspection so either major works. A client can finally identify which release produced an answer — the reproducibility claim in the article depends on that being answerable.
+- **`core.__version__` had drifted to 0.3.1** while the package was at 0.5.1, so even once plumbed through it would have reported the wrong release. It is now a literal, checked against `pyproject.toml` by `test_version_matches_pyproject`, so the two cannot separate again. Deriving it from `importlib.metadata` was tried and rejected: that reports whatever was last pip-installed and goes stale in editable installs.
+- **A test had been failing since 19 September.** `test_openaq_latest_resolves_parameters_from_sensor_ids` hardcoded an 18 September timestamp, and the 24 h staleness filter added in 0.3.3 empties that payload once the fixture ages past a day. It now generates its timestamps, as six other tests in the file already did. CI had been red for ten days and the published test count was stale.
+- 94 automated tests.
+
 ## 0.5.1 — 2026-09-18
 Hosting moved to Google Cloud Run after the Hugging Face free tier refused the Space
 (`Quota exceeded for flavor cpu-basic: limit=0` on a correctly configured, single Space).

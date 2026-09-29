@@ -591,7 +591,12 @@ def test_mcp_handshake_reports_version():
     """The handshake must carry a usable version on both mcp majors, not an empty string."""
     from wwc27_medagent import server
 
-    options = server.mcp._mcp_server.create_initialization_options()
+    # The wrapped low-level server has a different private name on each major:
+    # _mcp_server on FastMCP (mcp 1.x), _lowlevel_server on MCPServer (mcp 2.x). Hardcoding
+    # the 1.x name is what failed the mcp>=2 matrix legs on 29 Sep 2026.
+    low = getattr(server.mcp, "_mcp_server", None) or getattr(server.mcp, "_lowlevel_server", None)
+    assert low is not None, "could not reach the low-level server on this mcp major"
+    options = low.create_initialization_options()
     assert options.server_name == "wwc27-medagent"
     assert options.server_version, "serverInfo.version is empty - clients cannot identify the release"
     assert options.server_version == core.__version__
