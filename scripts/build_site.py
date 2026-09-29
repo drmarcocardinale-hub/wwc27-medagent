@@ -54,6 +54,51 @@ OPTION1_PENDING = """    <div class="card">
     </div>"""
 
 
+OTHER_CLIENTS = """    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">Using an assistant other than Claude</h3>
+      <p style="font-size:.9rem;margin:0 0 8px">The agent speaks the Model Context Protocol, which
+      is not tied to any one vendor. Any assistant, IDE extension or agent framework that supports
+      MCP over HTTP can use it. In its settings look for <em>MCP</em>, <em>remote MCP server</em> or
+      <em>custom connector</em>, and give it the transport and the URL:</p>
+      <p style="font-size:.85rem;margin:0 0 8px">Transport: <strong>streamable HTTP</strong> &middot;
+      URL: <code style="font-family:var(--mono);font-size:.82rem">__URL__</code></p>
+      <p style="font-size:.85rem;margin:8px 0 6px">Most clients that use a config file take this
+      shape:</p>
+      <pre style="font-family:var(--mono);font-size:.82rem;overflow-x:auto;background:var(--bg);
+        padding:10px 12px;border-radius:var(--radius);margin:0"><code>{ "mcpServers": { "wwc27-medagent": {
+    "type": "streamable-http",
+    "url": "__URL__"
+} } }</code></pre>
+      <p style="font-size:.85rem;margin:10px 0 0">If your client only supports local servers, install
+      it as in Option 2 and point the client at the <code style="font-family:var(--mono)">command</code>
+      form instead &mdash; that works with any MCP client, not only Claude.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">No MCP support? Call it over plain HTTP</h3>
+      <p style="font-size:.9rem;margin:0 0 8px">The endpoint is JSON-RPC, so any language model
+      wrapper, script or agent framework that can make an HTTP request can use the tools directly.
+      The server is stateless, so no handshake is needed &mdash; list the tools, then call one:</p>
+      <pre style="font-family:var(--mono);font-size:.8rem;overflow-x:auto;background:var(--bg);
+        padding:10px 12px;border-radius:var(--radius);margin:0"><code>curl -sS -X POST __URL__ \\
+  -H 'Content-Type: application/json' \\
+  -H 'Accept: application/json, text/event-stream' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+
+curl -sS -X POST __URL__ \\
+  -H 'Content-Type: application/json' \\
+  -H 'Accept: application/json, text/event-stream' \\
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
+        "name":"estimate_heat_risk",
+        "arguments":{"temperature_c":28,"relative_humidity_pct":85,"luteal_phase":true}}}'</code></pre>
+      <p style="font-size:.85rem;color:var(--muted);margin:10px 0 0">Replies come back as a
+      Server-Sent Events frame: the JSON is on the <code style="font-family:var(--mono)">data:</code>
+      line. Feed the tool descriptions from <code style="font-family:var(--mono)">tools/list</code> to
+      your own model as its tool schema, and it can call these the same way Claude does.</p>
+    </div>
+"""
+
+
 HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -219,6 +264,8 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
 
 __OPTION1__
 
+__OTHERCLIENTS__
+
     <div class="card">
       <h3 style="margin:0 0 6px;font-size:1rem">Option 2 &middot; Run it on your own machine</h3>
       <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px">Needs Python 3.10 or newer.
@@ -276,6 +323,7 @@ pip install -e .</code></pre>
         <label>Prefill from host city<select id="tCity"></select></label>
         <button type="button" id="tFill">Use July daily max</button>
       </div>
+      <p id="tFillNote" style="font-size:.8rem;color:var(--muted);margin:-4px 0 10px"></p>
       <div id="tOut" class="tryout"></div>
     </div>
 
@@ -418,14 +466,23 @@ function renderTryIt(){
 function initTryIt(){
   const sel = document.getElementById("tCity");
   sel.innerHTML = D.venue_table.map((r,i) => `<option value="${i}">${esc(r.city)}</option>`).join("");
+  const note = document.getElementById("tFillNote");
   document.getElementById("tFill").addEventListener("click", () => {
     const r = D.venue_table[sel.value];
     document.getElementById("tT").value = r.july.tmax;
     document.getElementById("tH").value = r.july.rh;
     renderTryIt();
+    // The grid cannot land on arbitrary normals, so say plainly what was rounded and point at
+    // the exact figure rather than leaving two slightly different numbers on the same site.
+    const snapped = heatLookup(r.july.tmax, r.july.rh);
+    note.innerHTML = (snapped.t !== r.july.tmax || snapped.h !== r.july.rh)
+      ? `${esc(r.city)}'s July normals are ${r.july.tmax}&nbsp;&deg;C and ${r.july.rh}%, rounded here to
+         the nearest grid point. The Host cities tab computes them unrounded, at
+         <strong>${r.july.swbgt_at_daily_max}&nbsp;&deg;C</strong>.`
+      : "";
   });
   ["tT","tH","tL"].forEach(id =>
-    document.getElementById(id).addEventListener("input", renderTryIt));
+    document.getElementById(id).addEventListener("input", () => { note.innerHTML = ""; renderTryIt(); }));
   document.getElementById("tryUseLink").addEventListener("click", e => {
     e.preventDefault();
     document.querySelector('nav button[data-tab="use"]').click();
@@ -558,7 +615,9 @@ def main() -> int:
     (DOCS / "data" / "heat_grid.json").write_text(
         json.dumps(heat_grid(), ensure_ascii=False) + "\n", encoding="utf-8")
     option1 = OPTION1_LIVE.format(url=HOSTED_MCP_URL) if HOSTED_MCP_URL else OPTION1_PENDING
+    other = OTHER_CLIENTS.replace("__URL__", HOSTED_MCP_URL or "(hosted endpoint not configured)")
     html = (HTML.replace("__OPTION1__", option1)
+                .replace("__OTHERCLIENTS__", other)
                 .replace("__REPO__", REPO)
                 .replace("__DOI__", CONCEPT_DOI)
                 .replace("__BUILT__", date.today().isoformat()))
