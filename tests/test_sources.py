@@ -166,14 +166,18 @@ def test_openaq_latest_resolves_parameters_from_sensor_ids(monkeypatch):
     Matching on a missing `parameter` field silently dropped every value, so all eight cities
     reported pm2.5=None while appearing to succeed.
     """
+    # Timestamps must be generated, not hardcoded: the 24 h staleness filter added in 0.3.3
+    # silently empties this payload once the fixture date ages past a day, which turned this
+    # test red on 19 Sep 2026 for reasons unrelated to what it is meant to check.
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     locations = {"results": [{
         "id": 7, "name": "Centro", "provider": {"name": "CETESB"},
         "coordinates": {"latitude": -23.55, "longitude": -46.63},
         "sensors": [{"id": 101, "parameter": {"name": "pm25"}},
                     {"id": 102, "parameter": {"name": "o3"}}],
-        "datetimeLast": {"utc": "2026-09-18T12:00:00Z"}}]}
-    latest = {"results": [{"sensorsId": 101, "value": 12.4, "datetime": {"utc": "2026-09-18T12:00:00Z"}},
-                          {"sensorsId": 102, "value": 40.0, "datetime": {"utc": "2026-09-18T12:00:00Z"}}]}
+        "datetimeLast": {"utc": now}}]}
+    latest = {"results": [{"sensorsId": 101, "value": 12.4, "datetime": {"utc": now}},
+                          {"sensorsId": 102, "value": 40.0, "datetime": {"utc": now}}]}
 
     def fake_get(url, headers=None, timeout=30.0, **kw):
         return latest if "/latest" in url else locations
@@ -561,3 +565,33 @@ def test_stateless_mode_is_configurable_for_serverless(monkeypatch):
     if server.MCP_MAJOR >= 2:
         server.main()
         assert captured["stateless_http"] is False, "stateful must stay the default locally"
+
+
+# --- version reporting -------------------------------------------------------
+# Regression for the 29 Sep 2026 finding: the deployed Cloud Run service completed the
+# MCP handshake with serverInfo.version == "", so a client could not tell which release
+# had answered it. Two separate defects: core.__version__ had drifted to 0.3.1 while the
+# package was at 0.5.1, and no version was passed to the MCP server class at all.
+
+def test_version_matches_pyproject():
+    """core.__version__ is a literal; this is what stops it drifting from pyproject.toml."""
+    import re
+    from pathlib import Path
+
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    declared = re.search(r'^version\s*=\s*"([^"]+)"', pyproject.read_text(encoding="utf-8"),
+                         re.MULTILINE)
+    assert declared, "no version field in pyproject.toml"
+    assert core.__version__ == declared.group(1), (
+        f"core.__version__ ({core.__version__}) != pyproject version ({declared.group(1)})"
+    )
+
+
+def test_mcp_handshake_reports_version():
+    """The handshake must carry a usable version on both mcp majors, not an empty string."""
+    from wwc27_medagent import server
+
+    options = server.mcp._mcp_server.create_initialization_options()
+    assert options.server_name == "wwc27-medagent"
+    assert options.server_version, "serverInfo.version is empty - clients cannot identify the release"
+    assert options.server_version == core.__version__

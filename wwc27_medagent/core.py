@@ -13,7 +13,10 @@ from functools import lru_cache
 from importlib import resources
 from typing import Any
 
-__version__ = "0.3.1"
+# Keep in step with pyproject.toml; tests/test_sources.py::test_version_matches_pyproject
+# fails the build if the two drift. Deliberately a literal rather than importlib.metadata,
+# which reports whatever was last pip-installed and silently goes stale in editable installs.
+__version__ = "0.5.1"
 
 DISCLAIMER = (
     "Decision support only. Outputs summarise published evidence and climate normals; "

@@ -8,6 +8,7 @@ Run remotely:  python -m wwc27_medagent.server --http     (streamable HTTP on :8
 """
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import sys
@@ -22,8 +23,17 @@ except ModuleNotFoundError:                       # mcp 1.x
 
 from . import core
 
+# Report the package version in the MCP handshake so a client can tell which release
+# answered it - the paper's reproducibility claim depends on that being answerable.
+# mcp 2.x accepts version= on the constructor; FastMCP in mcp 1.x does not, and leaves the
+# low-level server's version as None, which serialises as "". Set both ways, guarded.
+_server_kwargs: dict = {}
+if "version" in inspect.signature(_ServerClass.__init__).parameters:
+    _server_kwargs["version"] = core.__version__
+
 mcp = _ServerClass(
     "wwc27-medagent",
+    **_server_kwargs,
     instructions=(
         "You are the paper agent for a Sports Medicine Current Opinion on medical screening and "
         "monitoring for the FIFA Women's World Cup Brazil 2027. Answer ONLY from the tools and "
@@ -32,6 +42,12 @@ mcp = _ServerClass(
         "identifiable player data. Outputs are decision support for qualified clinicians."
     ),
 )
+
+# FastMCP (mcp 1.x) exposes the low-level server it wraps; setting the version there is the
+# only way to populate serverInfo on that major. No-op when the constructor already took it.
+_low_level = getattr(mcp, "_mcp_server", None)
+if _low_level is not None and not getattr(_low_level, "version", None):
+    _low_level.version = core.__version__
 
 
 # ------------------------------------------------------------------ tools
