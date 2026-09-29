@@ -2,6 +2,14 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.5.3 — 2026-09-29
+A reader can now run the heat calculation without installing or connecting anything.
+
+- **"Try it" panel on the reader site.** Enter a forecast temperature and humidity, or prefill from a host city's July normals, and get the indicative sWBGT, the FIFA/FIFPRO band, the action text and the luteal-phase note, each with its source.
+- **The panel cannot disagree with the agent.** It looks values up in `docs/data/heat_grid.json`, generated at build time by `core.simplified_wbgt` and `core.heat_band` across 1,037 conditions (15–45 °C in 0.5 °C steps, 20–100% RH in 5% steps). The formula is never re-implemented in JavaScript, and `tests/test_site.py` checks every cell against `core`, plus the host-city table's bands. Inputs are snapped to the grid and the snapped values are displayed, so the reader always sees the exact inputs behind the number.
+- **Deliberately not wired to the hosted endpoint.** The server sends no CORS headers, so a browser on GitHub Pages cannot reach it — but the stronger reason is that a page cited in a journal should keep working when the service is down, out of quota, or its billing account lapses. The endpoint stays a convenience, not a dependency, and the panel works from the Zenodo archive alone.
+- 97 automated tests.
+
 ## 0.5.2 — 2026-09-29
 The deployed service could not say which version had answered it.
 

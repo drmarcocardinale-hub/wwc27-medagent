@@ -109,6 +109,14 @@ th{font-weight:600;font-size:.76rem;text-transform:uppercase;letter-spacing:.04e
   color:var(--muted);background:var(--bg);position:sticky;top:0}
 tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tryrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:12px}
+.tryrow label{display:flex;flex-direction:column;font-size:.78rem;color:var(--muted);gap:4px}
+.tryrow input[type=number],.tryrow select{font:inherit;padding:6px 8px;border:1px solid var(--line);
+  border-radius:6px;background:var(--surface);color:var(--ink);min-width:130px}
+.tryrow label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:.9rem}
+.tryrow button{font:inherit;padding:7px 12px;border:1px solid var(--line);border-radius:6px;
+  background:var(--accent-soft);color:var(--accent);cursor:pointer}
+.tryout{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
 .tag{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:999px;
   background:var(--accent-soft);color:var(--accent);white-space:nowrap}
 .tag.warn{background:#f7ead9;color:var(--warn)}
@@ -159,6 +167,7 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
   <button role="tab" aria-selected="false" data-tab="screening">Screening matrix</button>
   <button role="tab" aria-selected="false" data-tab="evidence">Evidence</button>
   <button role="tab" aria-selected="false" data-tab="air">Air quality</button>
+  <button role="tab" aria-selected="false" data-tab="tryit">Try it</button>
   <button role="tab" aria-selected="false" data-tab="refs">References</button>
   <button role="tab" aria-selected="false" data-tab="use">Ask it questions</button>
 </div></nav>
@@ -249,6 +258,32 @@ pip install -e .</code></pre>
     </div>
   </section>
 
+  <section id="tryit" hidden>
+    <h2>Try it</h2>
+    <p class="lede">The heat calculation the agent performs, run here in the page. Enter a
+    forecast, or prefill one from a host city's July normals. Every number below was produced by
+    the Python package at build time rather than re-implemented in JavaScript, so this panel and
+    the agent cannot give different answers. Indicative only: it ignores sun and wind and does not
+    replace on-site WBGT measurement.</p>
+
+    <div class="card">
+      <div class="tryrow">
+        <label>Temperature &deg;C<input type="number" id="tT" value="28" min="15" max="45" step="0.5"></label>
+        <label>Relative humidity %<input type="number" id="tH" value="85" min="20" max="100" step="5"></label>
+        <label class="chk"><input type="checkbox" id="tL"> Luteal phase</label>
+      </div>
+      <div class="tryrow">
+        <label>Prefill from host city<select id="tCity"></select></label>
+        <button type="button" id="tFill">Use July daily max</button>
+      </div>
+      <div id="tOut" class="tryout"></div>
+    </div>
+
+    <p style="font-size:.85rem;color:var(--muted);margin-top:14px">This panel covers one tool.
+    For the rest &mdash; screening checklists, travel burden, the evidence base, air quality &mdash;
+    connect an assistant to the agent: see <a href="#use" id="tryUseLink">how to ask it questions</a>.</p>
+  </section>
+
   <section id="refs" hidden>
     <h2>References</h2>
     <p class="lede">Every source cited by the tools above.</p>
@@ -263,7 +298,7 @@ pip install -e .</code></pre>
 
 <script>
 const D = {};
-const files = ["venues","screening","evidence","references","air_quality","venue_table"];
+const files = ["venues","screening","evidence","references","air_quality","venue_table","heat_grid"];
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 // sWBGT and its band are computed by the Python package at build time (see venue_rows).
@@ -348,6 +383,57 @@ function renderAir(){
   }).join("");
 }
 
+function heatLookup(t, h){
+  const G = D.heat_grid, T = G.temp_c, H = G.rh_pct;
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+  // Snap to the pre-computed grid, then show the snapped inputs, so what the reader sees is
+  // exactly what produced the number - no hidden rounding between input and answer.
+  const st = clamp(Math.round(t / T.step) * T.step, T.min, T.max);
+  const sh = clamp(Math.round(h / H.step) * H.step, H.min, H.max);
+  const i = Math.round((st - T.min) / T.step), j = Math.round((sh - H.min) / H.step);
+  const band = G.bands[G.band_index[i][j]];
+  return {t: st, h: sh, swbgt: G.swbgt[i][j], band: band, action: G.actions[band]};
+}
+
+function renderTryIt(){
+  const G = D.heat_grid;
+  const t = parseFloat(document.getElementById("tT").value);
+  const h = parseFloat(document.getElementById("tH").value);
+  const out = document.getElementById("tOut");
+  if (!isFinite(t) || !isFinite(h)) { out.innerHTML = `<p class="empty">Enter a temperature and a humidity.</p>`; return; }
+  const r = heatLookup(t, h);
+  const note = (document.getElementById("tL").checked && G.luteal_note)
+    ? `<p style="font-size:.85rem;margin:10px 0 0"><strong>Luteal phase.</strong> ${esc(G.luteal_note.note)}
+       <a href="${esc(G.luteal_note.source.link)}">${esc(G.luteal_note.source.key)}</a></p>` : "";
+  out.innerHTML = `
+    <p style="margin:0 0 6px;font-size:.8rem;color:var(--muted)">Computed for ${r.t}&nbsp;&deg;C and ${r.h}% relative humidity</p>
+    <p style="margin:0;font-size:1.35rem"><strong>${r.swbgt}&nbsp;&deg;C</strong> sWBGT
+      <span class="tag ${bandClass(r.band)}">${esc(r.band)}</span></p>
+    <p style="font-size:.9rem;margin:8px 0 0">${esc(r.action)}</p>
+    ${note}
+    <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">${esc(G.thresholds)}
+      &middot; <a href="${esc(G.source.link)}">${esc(G.source.key)}</a></p>`;
+}
+
+function initTryIt(){
+  const sel = document.getElementById("tCity");
+  sel.innerHTML = D.venue_table.map((r,i) => `<option value="${i}">${esc(r.city)}</option>`).join("");
+  document.getElementById("tFill").addEventListener("click", () => {
+    const r = D.venue_table[sel.value];
+    document.getElementById("tT").value = r.july.tmax;
+    document.getElementById("tH").value = r.july.rh;
+    renderTryIt();
+  });
+  ["tT","tH","tL"].forEach(id =>
+    document.getElementById(id).addEventListener("input", renderTryIt));
+  document.getElementById("tryUseLink").addEventListener("click", e => {
+    e.preventDefault();
+    document.querySelector('nav button[data-tab="use"]').click();
+    window.scrollTo({top: 0, behavior: "smooth"});
+  });
+  renderTryIt();
+}
+
 function renderRefs(){
   document.getElementById("refList").innerHTML = Object.entries(D.references)
     .map(([k,r]) => `<li id="ref-${esc(k)}">${esc(r.cite||"")}
@@ -370,7 +456,7 @@ document.getElementById("usePill").addEventListener("click", e => {
 
 Promise.all(files.map(f => fetch(`data/${f}.json`).then(r => r.json()).then(j => D[f] = j)))
   .then(() => {
-    renderVenues(); renderScreening(); renderEvidence(""); renderAir(); renderRefs();
+    renderVenues(); renderScreening(); renderEvidence(""); renderAir(); renderRefs(); initTryIt();
     try {
       const t = localStorage.getItem("wwc27-tab");
       if (t) document.querySelector(`nav button[data-tab="${t}"]`)?.click();
@@ -414,6 +500,54 @@ def venue_rows() -> list[dict]:
     return rows
 
 
+HEAT_T_MIN, HEAT_T_MAX, HEAT_T_STEP = 15.0, 45.0, 0.5
+HEAT_RH_MIN, HEAT_RH_MAX, HEAT_RH_STEP = 20, 100, 5
+
+
+def heat_grid() -> dict:
+    """Pre-compute sWBGT and its band across a grid of conditions with the package's own
+    functions, so the Try it panel can look values up instead of re-implementing the formula in
+    JavaScript. Same reasoning as venue_rows: the page and the agent must not be able to disagree.
+    tests/test_site.py checks every cell against core."""
+    from wwc27_medagent import core          # local import, as venue_rows does
+
+    temps, rhs = [], []
+    v = HEAT_T_MIN
+    while v <= HEAT_T_MAX + 1e-9:
+        temps.append(round(v, 1)); v += HEAT_T_STEP
+    v = HEAT_RH_MIN
+    while v <= HEAT_RH_MAX + 1e-9:
+        rhs.append(v); v += HEAT_RH_STEP
+
+    bands = ["low", "moderate", "high", "very high"]
+    swbgt, index = [], []
+    for t in temps:
+        srow, irow = [], []
+        for h in rhs:
+            w = core.simplified_wbgt(t, h)
+            srow.append(w)
+            irow.append(bands.index(core.heat_band(w)["band"]))
+        swbgt.append(srow); index.append(irow)
+
+    reference = core.heat_band(30.0)
+    # One representative sWBGT per band, so the action text is core's, never a paraphrase.
+    actions = {b: core.heat_band(w)["action"] for b, w in zip(bands, [20.0, 25.0, 30.0, 34.0])}
+    luteal = core.heat_risk(30.0, 50.0, luteal_phase=True).get("female_physiology_note")
+    return {
+        "generated_by": "wwc27_medagent.core.simplified_wbgt + core.heat_band",
+        "package_version": core.__version__,
+        "temp_c": {"min": HEAT_T_MIN, "max": HEAT_T_MAX, "step": HEAT_T_STEP},
+        "rh_pct": {"min": HEAT_RH_MIN, "max": HEAT_RH_MAX, "step": HEAT_RH_STEP},
+        "bands": bands,
+        "actions": actions,
+        "thresholds": reference["thresholds"],
+        "source": reference["source"],
+        "luteal_note": luteal,
+        "swbgt": swbgt,
+        "band_index": index,
+    }
+
+
 def main() -> int:
     (DOCS / "data").mkdir(parents=True, exist_ok=True)
     for f in FILES:
@@ -421,6 +555,8 @@ def main() -> int:
         json.loads((DOCS / "data" / f).read_text(encoding="utf-8"))   # fail loudly on bad JSON
     (DOCS / "data" / "venue_table.json").write_text(
         json.dumps(venue_rows(), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    (DOCS / "data" / "heat_grid.json").write_text(
+        json.dumps(heat_grid(), ensure_ascii=False) + "\n", encoding="utf-8")
     option1 = OPTION1_LIVE.format(url=HOSTED_MCP_URL) if HOSTED_MCP_URL else OPTION1_PENDING
     html = (HTML.replace("__OPTION1__", option1)
                 .replace("__REPO__", REPO)

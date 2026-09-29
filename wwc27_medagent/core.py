@@ -16,7 +16,7 @@ from typing import Any
 # Keep in step with pyproject.toml; tests/test_sources.py::test_version_matches_pyproject
 # fails the build if the two drift. Deliberately a literal rather than importlib.metadata,
 # which reports whatever was last pip-installed and silently goes stale in editable installs.
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 DISCLAIMER = (
     "Decision support only. Outputs summarise published evidence and climate normals; "
