@@ -1,0 +1,72 @@
+# Cloud Build pipeline for WWC27-MedAgent.
+#
+# Why this file exists: the Cloud Run continuous-deployment trigger is configured to look
+# for a Cloud Build config file, not for the Dockerfile. Without this file every run fails
+# at once with "File cloudbuild.yaml not found", and because the failure happens before a
+# build is created, nothing is ever recorded in Build History - which looks identical to
+# "the trigger never fired".
+#
+# Keeping the pipeline in the repository, rather than in console trigger settings, means
+# the deployment serving the endpoint cited in the paper is versioned with the code.
+
+substitutions:
+  _SERVICE: wwc27-medagent
+  _REGION: europe-west1
+  _AR_REPO: cloud-run-source-deploy
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # The Artifact Registry repository must exist before the push. Creating it is a no-op
+  # when it is already there, so this is safe to run on every build.
+  - id: ensure-artifact-registry
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud artifacts repositories describe "${_AR_REPO}" \
+          --location="${_REGION}" >/dev/null 2>&1 || \
+        gcloud artifacts repositories create "${_AR_REPO}" \
+          --repository-format=docker --location="${_REGION}" \
+          --description="Images built from source for Cloud Run"
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}'
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}'
+
+  # MCP_STATELESS=1: streamable HTTP keeps session state in one instance's memory, and
+  # Cloud Run may route a follow-up request elsewhere. Stateless makes each request
+  # self-contained. --min-instances 0 scales to zero, so idle cost is nil.
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '${_SERVICE}'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE}:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=MCP_STATELESS=1'
+      - '--port=8080'
+      - '--cpu=1'
+      - '--memory=512Mi'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--concurrency=40'
+      - '--timeout=300'
+      - '--session-affinity'
+      - '--quiet'
