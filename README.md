@@ -133,7 +133,8 @@ version and its DOI.
 | DOI | Points to |
 |---|---|
 | [10.5281/zenodo.22832165](https://doi.org/10.5281/zenodo.22832165) | **Concept DOI** — always resolves to the newest version. Cite this when you mean "the living resource". |
-| [10.5281/zenodo.23331149](https://doi.org/10.5281/zenodo.23331149) | **Version DOI** for v0.5.3. Cite a version DOI to pin exactly what you used. |
+| [10.5281/zenodo.23345032](https://doi.org/10.5281/zenodo.23345032) | **Version DOI** for v0.5.4, the version cited in the manuscript. Cite a version DOI to pin exactly what you used. |
+| [10.5281/zenodo.23331149](https://doi.org/10.5281/zenodo.23331149) | **Version DOI** for v0.5.3. |
 | [10.5281/zenodo.22832166](https://doi.org/10.5281/zenodo.22832166) | **Version DOI** for v0.3.2, the first archived release. |
 
 ## Living-mode curation
