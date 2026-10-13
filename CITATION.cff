@@ -11,8 +11,13 @@ identifiers:
     value: "10.5281/zenodo.22832165"
     description: "Concept DOI - resolves to the most recent version"
   - type: doi
+    value: "10.5281/zenodo.23331149"
+    description: "Version DOI for v0.5.3"
+  - type: doi
     value: "10.5281/zenodo.22832166"
     description: "Version DOI for v0.3.2"
+  # A release cannot list its own version DOI: Zenodo mints it on publication. Each new
+  # version DOI is therefore added here by the release that follows it.
 type: software
 authors:
   - family-names: Cardinale
