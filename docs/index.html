@@ -322,6 +322,38 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
     </div>
 
     <div class="card">
+      <h3 style="margin:0 0 8px;font-size:1rem">ChatGPT and GitHub Copilot</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+        <div>
+          <p style="font-size:.86rem;margin:0 0 6px"><strong>ChatGPT</strong> &mdash; Settings
+          &rarr; Connectors &rarr; Advanced &rarr; turn on <em>Developer mode</em>. Then
+          Connectors &rarr; Create, paste the URL above and choose <em>No authentication</em>.
+          In a chat, open the + menu, pick Developer mode and tick the connector.</p>
+          <p style="font-size:.8rem;color:var(--muted);margin:0">Plus, Pro, Business, Enterprise
+          and Edu on the web; not Free. On Business and Enterprise an administrator enables
+          Developer mode first.</p>
+        </div>
+        <div>
+          <p style="font-size:.86rem;margin:0 0 6px"><strong>GitHub Copilot</strong> &mdash; in
+          VS Code, add the server to <code style="font-family:var(--mono)">.vscode/mcp.json</code>
+          and use agent mode:</p>
+          <pre style="font-family:var(--mono);font-size:.78rem;background:var(--bg);
+            white-space:pre-wrap;word-break:break-all;
+            padding:9px 11px;border-radius:var(--radius);margin:0"><code>{ "servers": { "wwc27-medagent": {
+    "type": "http",
+    "url": "https://wwc27-medagent-919325462297.europe-west1.run.app/mcp"
+} } }</code></pre>
+          <p style="font-size:.8rem;color:var(--muted);margin:8px 0 0">Or run
+          <code style="font-family:var(--mono)">code --add-mcp</code>.</p>
+        </div>
+      </div>
+      <p style="font-size:.8rem;color:var(--muted);margin:12px 0 0">Menu paths checked
+      13&nbsp;Oct&nbsp;2026 and they do move. If one has changed, look for <em>MCP</em>,
+      <em>connector</em> or <em>remote server</em> in the settings and give it the transport and
+      URL above &mdash; those do not change.</p>
+    </div>
+
+    <div class="card">
       <h3 style="margin:0 0 6px;font-size:1rem">No MCP support? Call it over plain HTTP</h3>
       <p style="font-size:.9rem;margin:0 0 8px">The endpoint is JSON-RPC, so any language model
       wrapper, script or agent framework that can make an HTTP request can use the tools directly.
