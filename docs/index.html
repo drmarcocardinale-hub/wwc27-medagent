@@ -8,93 +8,191 @@
 <meta name="description" content="Sports medicine and science preparation for the FIFA Women's World Cup Brazil 2027: host-city data, screening matrix and source-linked evidence.">
 <style>
 :root{
-  --bg:#fbfaf8; --surface:#fff; --line:#e4e0da; --ink:#1c1a17; --muted:#6b645c;
-  --accent:#0b6b5e; --accent-soft:#e6f2f0; --warn:#a8531a; --bad:#9d2f2f;
-  --radius:10px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#faf9f7; --surface:#fff; --surface-2:#f5f3ef; --line:#e4e0da; --line-soft:#efece6;
+  --ink:#1c1a17; --ink-2:#47423b; --muted:#6b645c;
+  --accent:#0b6b5e; --accent-soft:#e6f2f0;
+  --low:#2a78d6; --low-soft:#e7effc;
+  --ok:#0e8a72; --ok-soft:#e3f1ed;
+  --warn:#cf7a12; --warn-soft:#fbeeda;
+  --bad:#9d2f2f; --bad-soft:#f8e4e3;
+  --grid:#eae6e0; --axis:#cfc9c0;
+  --s1:#b9f5e3; --s2:#a3e5d2; --s3:#8cd4c0; --s4:#75c4ae;
+  --s5:#5ab29b; --s6:#3ca088; --s7:#1d8c75; --s8:#0b7661;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 1px 2px rgba(28,26,23,.05), 0 8px 24px -16px rgba(28,26,23,.18);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
+/* Dark is selected, not flipped: its own ramp steps and band colours, each validated against
+   the dark surface. Declared under both scopes so an explicit theme wins over the OS setting. */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#16181a; --surface:#1e2124; --line:#32373c; --ink:#e9e6e1; --muted:#9aa0a6;
-  --accent:#5fd3bf; --accent-soft:#16302c; --warn:#e0a061; --bad:#e5847f;
+  --bg:#141619; --surface:#1e2124; --surface-2:#252a2e; --line:#32373c; --line-soft:#282d31;
+  --ink:#e9e6e1; --ink-2:#c2bdb6; --muted:#9aa0a6;
+  --accent:#5fd3bf; --accent-soft:#16302c;
+  --low:#3987e5; --low-soft:#172539;
+  --ok:#22a893; --ok-soft:#14302b;
+  --warn:#c08a1a; --warn-soft:#332714;
+  --bad:#c94a4a; --bad-soft:#331e1e;
+  --grid:#2a2f33; --axis:#3d4449;
+  --s1:#083f36; --s2:#144d43; --s3:#1e5d51; --s4:#296c60;
+  --s5:#347c6f; --s6:#3f8c7d; --s7:#529c8d; --s8:#66aa9c;
+  --shadow:0 1px 2px rgba(0,0,0,.30), 0 8px 24px -16px rgba(0,0,0,.60);
 }}
 :root[data-theme="dark"]{
-  --bg:#16181a; --surface:#1e2124; --line:#32373c; --ink:#e9e6e1; --muted:#9aa0a6;
-  --accent:#5fd3bf; --accent-soft:#16302c; --warn:#e0a061; --bad:#e5847f;
+  --bg:#141619; --surface:#1e2124; --surface-2:#252a2e; --line:#32373c; --line-soft:#282d31;
+  --ink:#e9e6e1; --ink-2:#c2bdb6; --muted:#9aa0a6;
+  --accent:#5fd3bf; --accent-soft:#16302c;
+  --low:#3987e5; --low-soft:#172539;
+  --ok:#22a893; --ok-soft:#14302b;
+  --warn:#c08a1a; --warn-soft:#332714;
+  --bad:#c94a4a; --bad-soft:#331e1e;
+  --grid:#2a2f33; --axis:#3d4449;
+  --s1:#083f36; --s2:#144d43; --s3:#1e5d51; --s4:#296c60;
+  --s5:#347c6f; --s6:#3f8c7d; --s7:#529c8d; --s8:#66aa9c;
+  --shadow:0 1px 2px rgba(0,0,0,.30), 0 8px 24px -16px rgba(0,0,0,.60);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-  line-height:1.55;-webkit-text-size-adjust:100%}
-.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
-header{border-bottom:1px solid var(--line);background:var(--surface)}
-header .wrap{padding-top:28px;padding-bottom:22px}
-h1{font-size:clamp(1.4rem,3.4vw,2rem);margin:0 0 6px;letter-spacing:-.01em}
-.sub{color:var(--muted);margin:0 0 14px;font-size:.95rem;max-width:64ch}
+  line-height:1.55;-webkit-text-size-adjust:100%;font-synthesis-weight:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+header{border-bottom:1px solid var(--line);background:
+  radial-gradient(120% 140% at 12% -10%, var(--accent-soft) 0%, transparent 58%), var(--surface)}
+header .wrap{padding-top:36px;padding-bottom:26px}
+.eyebrow{font-size:.72rem;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);
+  font-weight:700;margin:0 0 10px}
+h1{font-size:clamp(1.55rem,3.6vw,2.3rem);margin:0 0 8px;letter-spacing:-.022em;line-height:1.15}
+.sub{color:var(--ink-2);margin:0 0 18px;font-size:1rem;max-width:62ch}
 .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.82rem}
-.pill{border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted);
-  text-decoration:none;background:var(--bg)}
+.pill{border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--muted);
+  text-decoration:none;background:var(--surface);transition:border-color .15s,color .15s}
 .pill:hover{border-color:var(--accent);color:var(--accent)}
-.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 14px;
-  border-radius:0 var(--radius) var(--radius) 0;font-size:.88rem;margin:16px 0}
-nav{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+
+/* Four single numbers that are not a chart: a bar chart of one value per bar would say less. */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;margin:22px 0 4px}
+.stat{background:var(--surface);padding:12px 14px}
+.stat b{display:block;font-size:1.5rem;line-height:1.1;letter-spacing:-.02em;font-weight:650;white-space:nowrap}
+.stat>span{display:block;font-size:.76rem;color:var(--muted);margin-top:3px}
+.stat b span{display:inline;font-size:.92rem;font-weight:500;color:var(--muted)}
+
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:11px 15px;
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.88rem;margin:18px 0}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--surface) 88%,transparent);
+  backdrop-filter:saturate(1.6) blur(8px);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;gap:2px;overflow-x:auto;padding-top:0;padding-bottom:0}
 nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);
-  font:inherit;font-size:.9rem;padding:12px 12px;cursor:pointer;white-space:nowrap}
-nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-main{padding:22px 0 60px}
+  font:inherit;font-size:.9rem;padding:13px 13px;cursor:pointer;white-space:nowrap}
+nav button:hover{color:var(--ink)}
+nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:650}
+main{padding:26px 0 72px}
 section[hidden]{display:none}
-h2{font-size:1.15rem;margin:0 0 4px}
-.lede{color:var(--muted);font-size:.9rem;margin:0 0 16px;max-width:70ch}
+h2{font-size:1.3rem;margin:0 0 5px;letter-spacing:-.015em}
+.lede{color:var(--muted);font-size:.9rem;margin:0 0 18px;max-width:72ch}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-  padding:14px 16px;margin-bottom:12px}
-.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+  padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+
+/* Figures: one chart per figure, its legend above the plot and its caption below. */
+figure.viz{margin:0 0 18px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px 18px 12px;box-shadow:var(--shadow)}
+figure.viz h3{margin:0 0 2px;font-size:.98rem;letter-spacing:-.01em}
+figure.viz .vsub{margin:0 0 12px;font-size:.82rem;color:var(--muted);max-width:70ch}
+figure.viz figcaption{margin-top:10px;font-size:.78rem;color:var(--muted);max-width:76ch}
+.vizbody{position:relative;overflow-x:auto}
+.vizbody svg{display:block;width:100%;height:auto;overflow:visible;min-width:var(--vmin,0)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 12px;font-size:.78rem;
+  color:var(--ink-2)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;
+  vertical-align:-1px}
+.legend .swatch{display:flex;align-items:center}
+.scale{display:flex;align-items:center;gap:7px;font-size:.74rem;color:var(--muted)}
+.scale .bar{display:flex;height:9px;border-radius:3px;overflow:hidden;width:132px}
+.scale .bar span{flex:1}
+.vtip{position:absolute;pointer-events:none;opacity:0;transition:opacity .09s;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:7px 10px;font-size:.78rem;box-shadow:var(--shadow);min-width:118px;line-height:1.4}
+.vtip strong{font-size:.88rem}
+.vtip .k{color:var(--muted)}
+.vizgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;
+  align-items:start}
+@media (max-width:860px){.vizgrid{grid-template-columns:1fr}}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--surface);box-shadow:var(--shadow)}
 table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:560px}
-th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-weight:600;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;
-  color:var(--muted);background:var(--bg);position:sticky;top:0}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-weight:650;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);background:var(--surface-2);position:sticky;top:0}
 tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Screening overview: a shaded table is its own table view, and every cell prints its count,
+   so the shading is a second read of the number rather than the only way to get it. */
+table.matrix{min-width:520px;font-size:.84rem}
+table.matrix td.cell{text-align:center;font-variant-numeric:tabular-nums;cursor:pointer;
+  padding:0;border-bottom:1px solid var(--surface)}
+table.matrix td.cell>span{display:block;padding:9px 6px;margin:1px;border-radius:5px;
+  color:var(--ink)}
+table.matrix td.cell:hover>span{outline:2px solid var(--accent);outline-offset:-2px}
+table.matrix th.dom{font-weight:500;text-transform:none;letter-spacing:0;font-size:.84rem;
+  color:var(--ink);background:var(--surface);position:static;white-space:normal;min-width:190px}
+
 .tryrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:12px}
-.tryrow label{display:flex;flex-direction:column;font-size:.78rem;color:var(--muted);gap:4px}
-.tryrow input[type=number],.tryrow select{font:inherit;padding:6px 8px;border:1px solid var(--line);
-  border-radius:6px;background:var(--surface);color:var(--ink);min-width:130px}
+.tryrow label{display:flex;flex-direction:column;font-size:.76rem;color:var(--muted);gap:4px}
+.tryrow input[type=number],.tryrow select{font:inherit;padding:7px 9px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);min-width:130px}
 .tryrow label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:.9rem}
-.tryrow button{font:inherit;padding:7px 12px;border:1px solid var(--line);border-radius:6px;
-  background:var(--accent-soft);color:var(--accent);cursor:pointer}
-.tryout{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
-.tag{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:999px;
-  background:var(--accent-soft);color:var(--accent);white-space:nowrap}
-.tag.warn{background:#f7ead9;color:var(--warn)}
-.tag.bad{background:#f7dedd;color:var(--bad)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tag.warn{background:#3a2a17}
-  :root:not([data-theme="light"]) .tag.bad{background:#3a1f1e}}
-input[type=search]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);
-  background:var(--surface);color:var(--ink);font:inherit;font-size:.92rem;margin-bottom:12px}
-input[type=search]:focus{outline:2px solid var(--accent);outline-offset:1px}
+.tryrow button{font:inherit;padding:8px 13px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);background:var(--accent-soft);color:var(--accent);cursor:pointer;
+  font-weight:600}
+.tryrow button:hover{border-color:var(--accent)}
+.tryout{border-top:1px solid var(--line);padding-top:14px;margin-top:6px}
+.bignum{font-size:2rem;line-height:1.05;letter-spacing:-.025em;font-weight:650}
+
+.tag{display:inline-block;font-size:.71rem;font-weight:600;padding:2px 8px;border-radius:999px;
+  background:var(--ok-soft);color:var(--ok);white-space:nowrap}
+.tag.low{background:var(--low-soft);color:var(--low)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+input[type=search]{width:100%;padding:11px 13px;border:1px solid var(--line);
+  border-radius:var(--radius);background:var(--surface);color:var(--ink);font:inherit;
+  font-size:.92rem;margin-bottom:14px}
 details{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
-  padding:10px 14px;margin-bottom:8px}
-details summary{cursor:pointer;font-weight:600;font-size:.94rem}
+  padding:11px 15px;margin-bottom:8px}
+details[open]{box-shadow:var(--shadow)}
+details summary{cursor:pointer;font-weight:650;font-size:.94rem}
 details ul{margin:10px 0 4px;padding-left:20px}
 details li{margin-bottom:5px;font-size:.89rem}
-.phase{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;
-  margin:12px 0 2px;font-weight:600}
-.ev{border-bottom:1px solid var(--line);padding:12px 0}
+.phase{color:var(--accent);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
+  margin:14px 0 2px;font-weight:700}
+.ev{border-bottom:1px solid var(--line-soft);padding:13px 0}
 .ev:last-child{border-bottom:0}
-.ev .id{font-family:var(--mono);font-size:.76rem;color:var(--accent)}
-.ev .claim{margin:3px 0 5px}
+.ev .id{font-family:var(--mono);font-size:.74rem;color:var(--accent)}
+.ev .claim{margin:4px 0 5px}
 .ev .src{font-size:.8rem;color:var(--muted)}
 a{color:var(--accent)}
 ol.refs{padding-left:22px;font-size:.86rem}
 ol.refs li{margin-bottom:9px}
-footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padding:18px 0 40px}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padding:22px 0 48px}
 .empty{color:var(--muted);font-style:italic;padding:16px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <header><div class="wrap">
+  <p class="eyebrow">Living companion to a Current Opinion</p>
   <h1>WWC27-MedAgent</h1>
   <p class="sub">Sports medicine and science preparation for the FIFA Women's World Cup Brazil
   2027 &mdash; host-city conditions, a screening and monitoring matrix, and a source-linked
   evidence base. Companion to the Current Opinion by Cardinale &amp; Geertsema.</p>
+  <div class="stats">
+    <div class="stat"><b>8</b><span>host cities</span></div>
+    <div class="stat"><b>64</b><span>matches, 24 Jun &ndash; 25 Jul 2027</span></div>
+    <div class="stat"><b>3200<span> km</span></b><span>Porto Alegre to Fortaleza</span></div>
+    <div class="stat"><b>17&ndash;35<span> &deg;C</span></b><span>indicative sWBGT range</span></div>
+  </div>
   <div class="meta">
     <a class="pill" href="https://github.com/drmarcocardinale-hub/wwc27-medagent">Code on GitHub</a>
     <a class="pill" href="https://doi.org/10.5281/zenodo.22832165">DOI 10.5281/zenodo.22832165</a>
@@ -124,6 +222,25 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
     roughly an average afternoon, not the hottest day on record. It ignores sun and wind and does
     not replace on-site measurement. Bands follow FIFA (&gt;32&nbsp;°C mandatory cooling breaks)
     and FIFPRO (28&ndash;32&nbsp;°C).</p>
+    <div class="vizgrid">
+      <figure class="viz">
+        <h3>Indicative heat load, venue by venue</h3>
+        <p class="vsub">Simplified WBGT at each city's mean daily maximum. The dot is July, the
+        ring is June; the gap between them is how much the month matters.</p>
+        <div class="legend" id="bandLegend"></div>
+        <div class="vizbody" style="--vmin:520px"><div id="venueChart"></div><div class="vtip" id="venueTip"></div></div>
+        <figcaption>Shaded zones: FIFPRO advises cooling breaks from 28&nbsp;&deg;C; FIFA's
+        historical policy made them mandatory above 32&nbsp;&deg;C. Values are an average
+        afternoon, not the hottest day on record, and ignore sun and wind.</figcaption>
+      </figure>
+      <figure class="viz">
+        <h3>Where the eight venues sit</h3>
+        <p class="vsub">Coloured by the same July band. Fortaleza is 3&deg; south of the equator;
+        Porto Alegre is below the tropic, in winter.</p>
+        <div class="vizbody" style="--vmin:300px"><div id="venueMap"></div><div class="vtip" id="mapTip"></div></div>
+        <figcaption>Outline: Natural Earth 1:50m, public domain. Mercator projection.</figcaption>
+      </figure>
+    </div>
     <div class="tablewrap"><table id="venueTable"></table></div>
   </section>
 
@@ -131,6 +248,15 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
     <h2>Screening and monitoring matrix</h2>
     <p class="lede">Eleven domains across four phases. Open a domain to see the actions for each
     phase and the sources behind them.</p>
+    <figure class="viz">
+      <h3>Where the actions sit</h3>
+      <p class="vsub">Number of checklist items in each domain and phase; a stronger colour
+      means more to do. Select a cell to open that domain.</p>
+      <div class="scale" style="margin-bottom:10px"><span>fewer</span>
+        <span class="bar" id="matrixScale"></span><span>more</span></div>
+      <div class="tablewrap" style="box-shadow:none"><table class="matrix" id="matrixTable"></table></div>
+      <figcaption>The counts are the items listed below, not a measure of effort or importance.</figcaption>
+    </figure>
     <div id="screeningList"></div>
   </section>
 
@@ -280,6 +406,17 @@ pip install -e .</code></pre>
       <div id="tOut" class="tryout"></div>
     </div>
 
+    <figure class="viz">
+      <h3>The whole surface, not just one answer</h3>
+      <p class="vsub">Every combination the agent holds: 15&ndash;45&nbsp;&deg;C against
+      20&ndash;100% humidity. The cross marks your input; the two lines are the 28 and
+      32&nbsp;&deg;C band thresholds.</p>
+      <div class="scale" id="heatScale"></div>
+      <div class="vizbody" style="--vmin:470px"><div id="heatMap"></div><div class="vtip" id="heatTip"></div></div>
+      <figcaption>1,037 cells, each computed by the Python package at build time. Hover or focus
+      a cell for its value.</figcaption>
+    </figure>
+
     <p style="font-size:.85rem;color:var(--muted);margin-top:14px">This panel covers one tool.
     For the rest &mdash; screening checklists, travel burden, the evidence base, air quality &mdash;
     connect an assistant to the agent: see <a href="#use" id="tryUseLink">how to ask it questions</a>.</p>
@@ -303,7 +440,26 @@ const files = ["venues","screening","evidence","references","air_quality","venue
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 // sWBGT and its band are computed by the Python package at build time (see venue_rows).
-const bandClass = b => b === "very high" ? "bad" : b === "high" ? "warn" : "";
+const bandClass = b => ({"very high":"bad","high":"warn","low":"low"})[b] || "";
+const BANDS = ["low","moderate","high","very high"];
+const BAND_FILL = {"low":"var(--low)","moderate":"var(--ok)","high":"var(--warn)","very high":"var(--bad)"};
+const BAND_SOFT = {"low":"var(--low-soft)","moderate":"var(--ok-soft)","high":"var(--warn-soft)","very high":"var(--bad-soft)"};
+const OUTLINE = {"path":"M181.8 103.1 195.3 114.8 212.3 109.2 217.6 116.7 227.0 106.1 249.9 95.3 255.0 85.0 269.7 79.3 270.8 72.8 254.0 70.5 249.5 42.7 235.1 25.1 254.6 34.0 272.0 33.6 284.3 42.6 288.0 31.7 331.6 18.5 341.2 9.4 340.6 0.9 353.6 0.5 357.5 4.5 353.4 18.6 364.8 22.5 368.7 33.9 360.9 42.7 357.4 65.7 365.7 89.8 386.2 103.6 395.2 101.6 399.6 93.8 407.4 95.5 430.7 82.9 460.2 86.9 455.8 76.7 460.4 70.0 466.1 72.9 485.3 68.0 507.0 80.2 516.2 74.2 536.7 78.6 575.1 24.2 581.2 29.8 594.1 79.9 600.6 87.6 613.4 92.0 614.9 104.7 593.1 128.7 579.6 136.5 561.8 169.2 544.4 173.9 562.7 174.8 589.5 158.3 594.7 179.3 602.1 185.8 629.9 178.5 621.6 202.1 632.5 183.2 645.3 172.3 651.6 175.5 654.5 172.1 651.9 163.6 660.4 153.1 682.0 150.8 728.2 168.9 731.5 178.2 738.0 171.7 748.8 178.9 751.7 186.7 746.1 192.1 748.5 194.9 754.3 189.7 755.7 194.7 747.0 216.1 759.6 197.4 762.7 198.0 760.5 206.0 781.2 195.0 829.7 208.8 868.4 207.4 906.4 229.2 939.6 259.8 981.0 265.4 989.0 276.6 1000.0 320.8 995.9 349.6 979.8 378.9 934.9 427.2 934.8 423.3 926.4 445.4 912.4 464.8 905.8 467.7 900.9 459.0 896.8 463.4 899.0 466.4 890.7 484.3 896.0 544.3 887.8 579.3 889.1 593.4 876.4 608.1 873.0 643.7 843.1 689.0 842.0 709.9 824.0 718.5 816.9 725.9 815.4 736.1 792.0 736.6 787.0 729.9 785.2 737.3 768.0 740.4 773.7 737.8 768.8 735.1 749.2 739.1 750.9 745.1 728.1 759.9 715.1 759.7 692.3 772.0 663.7 794.4 665.2 798.1 658.2 805.1 653.1 801.1 651.2 805.9 644.7 803.8 653.1 810.3 646.4 817.3 644.3 829.3 649.2 855.8 643.0 895.6 618.8 918.6 588.8 974.6 560.3 1000.3 559.7 991.7 569.5 990.0 579.9 981.1 582.7 970.4 594.8 958.1 594.1 949.9 597.5 950.2 598.0 944.8 586.2 948.2 579.2 938.3 582.8 948.0 579.6 959.5 573.9 970.0 562.0 978.3 556.4 993.4 558.1 1001.9 544.7 1031.3 526.4 1049.7 522.3 1047.1 522.3 1032.3 532.6 1019.1 520.5 1009.0 516.4 998.5 480.4 975.2 469.4 962.5 459.2 969.3 458.1 960.3 438.0 940.4 428.3 945.6 418.2 942.8 462.1 889.6 467.3 890.0 466.3 884.8 489.1 866.0 514.4 853.6 518.7 828.1 510.0 809.7 494.6 809.7 504.1 766.7 494.3 760.1 474.2 764.0 464.4 719.7 447.9 712.0 435.4 717.4 408.6 711.2 412.6 682.5 404.2 659.7 411.8 654.7 404.9 648.3 421.1 607.1 412.5 588.2 398.1 580.8 399.4 555.5 352.7 555.1 351.0 534.1 342.3 524.1 350.3 523.8 344.3 489.6 329.7 481.7 311.6 482.7 303.2 473.1 286.7 468.8 279.0 460.2 244.4 454.2 229.9 442.1 219.7 423.1 219.6 383.3 189.5 388.2 137.2 419.5 121.8 415.6 85.7 417.0 88.3 376.2 70.5 389.9 46.4 390.9 41.4 378.1 20.2 375.5 26.2 364.7 0.0 327.7 7.2 321.3 6.2 310.9 22.1 299.6 19.6 290.2 28.4 265.2 55.0 249.4 81.7 240.9 102.8 244.2 117.4 164.8 111.4 147.3 100.3 137.9 100.7 119.6 123.7 117.5 119.7 107.5 105.9 107.3 106.0 90.7 148.6 90.4 148.2 83.6 154.8 89.7 168.4 80.3 175.6 90.9 176.5 104.1 181.8 103.1ZM621.8 140.2 653.4 141.9 642.1 169.8 633.5 170.4 631.9 175.1 624.9 172.9 617.3 180.0 599.4 180.0 593.0 166.0 597.6 162.5 592.0 157.5 595.9 141.3 606.0 137.3 621.8 140.2Z","lon0":-74.0021,"lat0":-33.7422,"lat1":5.258,"sx":1461.7545,"y_top":0.091898,"width":1000.0,"height":1049.7};
+const rad = d => d * Math.PI / 180;
+
+// Tooltips enhance; they never gate a value. Every number here is also in a table on the page.
+function tipOn(tip, host, x, y, html){
+  tip.innerHTML = html;
+  tip.style.opacity = "1";
+  const hw = host.clientWidth, t = tip.getBoundingClientRect();
+  let left = x + 16, top = y - t.height - 12;
+  if (left + t.width > hw) left = x - t.width - 16;
+  if (top < 0) top = y + 18;
+  tip.style.left = Math.max(0, left) + "px";
+  tip.style.top = Math.max(0, top) + "px";
+}
+const tipOff = tip => { tip.style.opacity = "0"; };
+
 
 function renderVenues(){
   const rows = D.venue_table.map(r => `<tr>
@@ -330,7 +486,7 @@ function renderScreening(){
       if (!items.length) return "";
       return `<div class="phase">${pl}</div><ul>${items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`;
     }).join("");
-    return `<details><summary>${esc(d.label || k)}</summary>${body}</details>`;
+    return `<details id="dom-${esc(k)}"><summary>${esc(d.label || k)}</summary>${body}</details>`;
   }).join("");
 }
 
@@ -356,17 +512,32 @@ function renderAir(){
   const a = D.air_quality;
   const g = a.guidelines_who_2021_ug_m3 || {};
   const bands = a.planning_bands_pm2_5_24h_ug_m3 || {};
-  const gRows = Object.entries(g).filter(([k])=>!k.startsWith("_"))
-    .map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${esc(typeof v==="object"?JSON.stringify(v):v)}</td></tr>`).join("");
+  // These were printing raw JSON ({"annual":5,"24h":15}) and a dangling "<=" on the open-ended
+  // top band. Same numbers, read as a table rather than as a dump.
+  const PERIOD = {annual:"annual mean", "24h":"24-hour", "8h":"8-hour", peak_season:"peak season"};
+  const POLL = {pm2_5:"PM2.5", pm10:"PM10", no2:"NO₂", o3:"Ozone"};
+  const human = k => k.replace(/_/g, " ");
+  const gRows = Object.entries(g).filter(([k]) => !k.startsWith("_") && k !== "source")
+    .map(([k,v]) => {
+      const parts = (v && typeof v === "object")
+        ? Object.entries(v).map(([pk,pv]) => `${pv} <span style="color:var(--muted)">${esc(PERIOD[pk]||pk)}</span>`).join(" &middot; ")
+        : esc(v);
+      return `<tr><td>${esc(POLL[k]||human(k))}</td><td class="num">${parts}</td></tr>`;
+    }).join("");
+  const BAND_TAG = {good:"", moderate:"", elevated:"warn", high:"warn", very_high:"bad"};
   const bRows = Object.entries(bands).filter(([k])=>!k.startsWith("_"))
-    .map(([k,v])=>`<tr><td><span class="tag ${k==="good"?"":(k==="moderate"?"":"warn")}">${esc(k)}</span></td>
-      <td class="num">&le; ${esc(v.max ?? "")}</td><td>${esc(v.action||"")}</td></tr>`).join("");
+    .map(([k,v]) => {
+      const range = v.max == null ? "above 50" : "&le; " + v.max;
+      return `<tr><td><span class="tag ${BAND_TAG[k] ?? ""}">${esc(human(k))}</span></td>
+      <td class="num">${range}</td><td>${esc(v.action||"")}</td></tr>`;
+    }).join("");
   document.getElementById("airGuides").innerHTML = `
     <div class="card"><strong>WHO 2021 guideline levels (µg/m³)</strong>
-      <div class="tablewrap" style="margin-top:8px"><table>${gRows}</table></div></div>
+      <div class="tablewrap" style="margin-top:8px;box-shadow:none"><table>
+      <thead><tr><th>Pollutant</th><th>Guideline level</th></tr></thead><tbody>${gRows}</tbody></table></div></div>
     <div class="card"><strong>Planning bands for PM2.5 over 24 h</strong>
       <p class="lede" style="margin:4px 0 8px">${esc(bands._note||"")}</p>
-      <div class="tablewrap"><table><thead><tr><th>Band</th><th>µg/m³</th><th>Action</th></tr></thead>
+      <div class="tablewrap" style="box-shadow:none"><table><thead><tr><th>Band</th><th style="text-transform:none">µg/m³</th><th>Action</th></tr></thead>
       <tbody>${bRows}</tbody></table></div></div>`;
 
   document.getElementById("airCities").innerHTML = Object.entries(a.cities).map(([k,c]) => {
@@ -408,12 +579,13 @@ function renderTryIt(){
        <a href="${esc(G.luteal_note.source.link)}">${esc(G.luteal_note.source.key)}</a></p>` : "";
   out.innerHTML = `
     <p style="margin:0 0 6px;font-size:.8rem;color:var(--muted)">Computed for ${r.t}&nbsp;&deg;C and ${r.h}% relative humidity</p>
-    <p style="margin:0;font-size:1.35rem"><strong>${r.swbgt}&nbsp;&deg;C</strong> sWBGT
+    <p style="margin:0" class="bignum">${r.swbgt}&nbsp;&deg;C <span style="font-size:.95rem;font-weight:400;color:var(--muted)">sWBGT</span>
       <span class="tag ${bandClass(r.band)}">${esc(r.band)}</span></p>
     <p style="font-size:.9rem;margin:8px 0 0">${esc(r.action)}</p>
     ${note}
     <p style="font-size:.8rem;color:var(--muted);margin:10px 0 0">${esc(G.thresholds)}
       &middot; <a href="${esc(G.source.link)}">${esc(G.source.key)}</a></p>`;
+  updateHeatCross();
 }
 
 function initTryIt(){
@@ -444,6 +616,265 @@ function initTryIt(){
   renderTryIt();
 }
 
+function renderBandLegend(){
+  document.getElementById("bandLegend").innerHTML =
+    BANDS.map(b => `<span class="swatch"><i style="background:${BAND_FILL[b]}"></i>${esc(b)}</span>`).join("")
+    + `<span class="swatch" style="color:var(--muted)">
+         <svg width="26" height="12" style="margin-right:4px" aria-hidden="true"><circle cx="6" cy="6" r="4.5"
+         fill="var(--surface)" stroke="var(--ink-2)" stroke-width="2"/></svg>June</span>`
+    + `<span class="swatch" style="color:var(--muted)">
+         <svg width="26" height="12" style="margin-right:4px" aria-hidden="true"><circle cx="6" cy="6" r="5.5"
+         fill="var(--ink-2)"/></svg>July</span>`;
+}
+
+function renderVenueChart(){
+  const rows = D.venue_table.slice()
+    .sort((a,b) => b.july.swbgt_at_daily_max - a.july.swbgt_at_daily_max);
+  const W = 800, L = 150, R = 104, rowH = 31, top = 38;
+  const H = top + rows.length * rowH + 14;
+  const lo = 20, hi = 36;                       // covers 22.4 to 34.9 with air at both ends
+  const X = v => L + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (W - L - R);
+  const yOf = i => top + i * rowH + rowH / 2;
+
+  let g = "";
+  // Threshold zones first, so every mark sits on top of them.
+  g += `<rect x="${X(28)}" y="${top - 12}" width="${X(32) - X(28)}" height="${H - top - 2}" fill="var(--warn-soft)"/>`;
+  g += `<rect x="${X(32)}" y="${top - 12}" width="${X(hi) - X(32)}" height="${H - top - 2}" fill="var(--bad-soft)"/>`;
+  [28, 32].forEach(v => {
+    g += `<line x1="${X(v)}" y1="${top - 12}" x2="${X(v)}" y2="${H - 14}" stroke="var(--axis)" stroke-width="1"/>`;
+  });
+  g += `<text x="${X(28) + 5}" y="${top - 18}" font-size="10.5" fill="var(--warn)">28 FIFPRO</text>`;
+  g += `<text x="${X(32) + 5}" y="${top - 18}" font-size="10.5" fill="var(--bad)">32 FIFA</text>`;
+  // x axis
+  for (let v = 20; v <= 36; v += 4){
+    g += `<text x="${X(v)}" y="${H - 2}" font-size="10.5" fill="var(--muted)" text-anchor="middle">${v}</text>`;
+  }
+  g += `<line x1="${L}" y1="${H - 14}" x2="${W - R}" y2="${H - 14}" stroke="var(--axis)" stroke-width="1"/>`;
+  g += `<text x="${L - 14}" y="${H - 2}" font-size="10.5" fill="var(--muted)" text-anchor="end">&deg;C sWBGT</text>`;
+
+  rows.forEach((r, i) => {
+    const y = yOf(i), jn = r.june.swbgt_at_daily_max, jl = r.july.swbgt_at_daily_max;
+    const fill = BAND_FILL[r.july.band] || "var(--ok)";
+    g += `<text x="${L - 14}" y="${y + 4}" font-size="12.5" fill="var(--ink)" text-anchor="end">${esc(r.city)}</text>`;
+    g += `<line x1="${X(jn)}" y1="${y}" x2="${X(jl)}" y2="${y}" stroke="var(--axis)" stroke-width="2" stroke-linecap="round"/>`;
+    g += `<circle cx="${X(jn)}" cy="${y}" r="4.5" fill="var(--surface)" stroke="${fill}" stroke-width="2"/>`;
+    g += `<circle cx="${X(jl)}" cy="${y}" r="6.5" fill="${fill}" stroke="var(--surface)" stroke-width="2"/>`;
+    g += `<text x="${W - R + 10}" y="${y + 4}" font-size="12" fill="var(--ink)" style="font-variant-numeric:tabular-nums">${jl.toFixed(1)}</text>`;
+    g += `<text x="${W - R + 44}" y="${y + 4}" font-size="10.5" fill="${fill}">${esc(r.july.band)}</text>`;
+    g += `<rect class="hit" data-i="${i}" x="0" y="${y - rowH / 2}" width="${W}" height="${rowH}" fill="transparent"/>`;
+  });
+
+  const host = document.getElementById("venueChart");
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Indicative sWBGT by host city, June and July">${g}</svg>`;
+  const tip = document.getElementById("venueTip"), body = host.parentElement;
+  host.querySelectorAll("rect.hit").forEach(el => {
+    const r = rows[+el.dataset.i];
+    const show = ev => {
+      const b = body.getBoundingClientRect();
+      tipOn(tip, body, ev.clientX - b.left, ev.clientY - b.top,
+        `<strong>${esc(r.city)}</strong><br><span class="k">${esc(r.stadium)}</span><br>
+         June ${r.june.swbgt_at_daily_max} &deg;C &middot; ${esc(r.june.band)}<br>
+         July ${r.july.swbgt_at_daily_max} &deg;C &middot; ${esc(r.july.band)}<br>
+         <span class="k">${r.elevation_m} m &middot; ${r.july.tmax} &deg;C / ${r.july.rh}% in July</span>`);
+    };
+    el.addEventListener("mousemove", show);
+    el.addEventListener("mouseleave", () => tipOff(tip));
+  });
+}
+
+function renderVenueMap(){
+  const O = OUTLINE;
+  const mx = lon => (rad(lon) - rad(O.lon0)) * O.sx;
+  const my = lat => (O.y_top - Math.log(Math.tan(rad(45 + lat / 2)))) * O.sx;
+  const W = O.width, H = O.height;
+  let g = `<path d="${O.path}" fill="var(--surface-2)" stroke="var(--axis)" stroke-width="3" stroke-linejoin="round"/>`;
+
+  [[0, "Equator"], [-23.4367, "Tropic of Capricorn"]].forEach(([lat, label]) => {
+    const y = my(lat);
+    if (y < 6 || y > H - 6) return;
+    g += `<line x1="0" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="var(--grid)" stroke-width="3"/>`;
+    g += `<text x="8" y="${(y - 10).toFixed(1)}" font-size="23" fill="var(--muted)">${label}</text>`;
+  });
+
+  const pts = D.venue_table.map(r => {
+    const v = (D.venues.venues || {})[r.key] || {};
+    return {r: r, x: mx(v.lon), y: my(v.lat)};
+  }).filter(q => isFinite(q.x) && isFinite(q.y));
+
+  const fz = pts.find(q => q.r.key === "fortaleza"), pa = pts.find(q => q.r.key === "porto_alegre");
+  if (fz && pa){
+    g += `<line x1="${fz.x.toFixed(1)}" y1="${fz.y.toFixed(1)}" x2="${pa.x.toFixed(1)}" y2="${pa.y.toFixed(1)}" stroke="var(--axis)" stroke-width="2.5"/>`;
+    // a quarter of the way down the line is open interior; the midpoint is on top of Brasilia
+    const lx = fz.x + (pa.x - fz.x) * 0.27, ly = fz.y + (pa.y - fz.y) * 0.27;
+    g += `<text x="${(lx - 14).toFixed(1)}" y="${(ly - 10).toFixed(1)}" font-size="24" fill="var(--ink-2)" text-anchor="end" paint-order="stroke" stroke="var(--surface)" stroke-width="7">3200 km</text>`;
+  }
+
+  // Place each label on the side with room, then push overlapping ones apart down the column.
+  const GAP = 36;
+  [["r", q => q.x <= 640], ["l", q => q.x > 640]].forEach(([side, test]) => {
+    const col = pts.filter(test).sort((a, b) => a.y - b.y);
+    let last = -1e9;
+    col.forEach(q => {
+      q.ly = Math.max(q.y, last + GAP);
+      last = q.ly;
+      q.side = side;
+    });
+  });
+
+  pts.forEach(q => {
+    const fill = BAND_FILL[q.r.july.band] || "var(--ok)";
+    const lx = q.side === "l" ? q.x - 26 : q.x + 26;
+    if (Math.abs(q.ly - q.y) > 2){
+      g += `<line x1="${q.x.toFixed(1)}" y1="${q.y.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${(q.ly - 7).toFixed(1)}" stroke="var(--axis)" stroke-width="2"/>`;
+    }
+    g += `<circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="15" fill="${fill}" stroke="var(--surface)" stroke-width="5"/>`;
+    g += `<text x="${lx.toFixed(1)}" y="${(q.ly + 8).toFixed(1)}" font-size="26" fill="var(--ink)"
+       text-anchor="${q.side === "l" ? "end" : "start"}" paint-order="stroke" stroke="var(--surface)" stroke-width="7">${esc(q.r.city)}</text>`;
+    g += `<circle class="hit" data-k="${esc(q.r.key)}" cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="44" fill="transparent"/>`;
+  });
+
+  const host = document.getElementById("venueMap");
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H.toFixed(1)}" role="img" aria-label="Map of Brazil with the eight host cities">${g}</svg>`;
+  const tip = document.getElementById("mapTip"), body = host.parentElement;
+  host.querySelectorAll("circle.hit").forEach(el => {
+    const q = pts.find(z => z.r.key === el.dataset.k);
+    el.addEventListener("mousemove", ev => {
+      const b = body.getBoundingClientRect();
+      tipOn(tip, body, ev.clientX - b.left, ev.clientY - b.top,
+        `<strong>${esc(q.r.city)}</strong><br><span class="k">${esc(q.r.stadium)}</span><br>
+         July ${q.r.july.swbgt_at_daily_max} &deg;C sWBGT &middot; ${esc(q.r.july.band)}<br>
+         <span class="k">Yellow fever: ${esc(q.r.yellow_fever)}</span>`);
+    });
+    el.addEventListener("mouseleave", () => tipOff(tip));
+  });
+}
+
+// One hue, light to dark: magnitude is a sequential job, and a rainbow would invent categories.
+const HEAT_LO = 16, HEAT_HI = 42;
+const heatStep = v => Math.max(1, Math.min(8, Math.floor((v - HEAT_LO) / (HEAT_HI - HEAT_LO) * 8) + 1));
+
+function renderHeatScale(){
+  document.getElementById("heatScale").innerHTML =
+    `<span>${HEAT_LO}</span><span class="bar">` +
+    [1,2,3,4,5,6,7,8].map(i => `<span style="background:var(--s${i})"></span>`).join("") +
+    `</span><span>${HEAT_HI}+ &deg;C sWBGT</span>`;
+}
+
+function renderHeatMap(){
+  const G = D.heat_grid, T = G.temp_c, Hp = G.rh_pct;
+  const nT = G.swbgt.length, nH = G.swbgt[0].length;
+  const W = 600, H = 384, mL = 46, mR = 12, mT = 10, mB = 34;
+  const cw = (W - mL - mR) / nH, ch = (H - mT - mB) / nT;
+  const px = j => mL + j * cw;
+  const py = i => mT + (nT - 1 - i) * ch;            // hot at the top
+  const pyT = t => mT + (nT - 1 - (t - T.min) / T.step) * ch;
+
+  let g = "";
+  for (let i = 0; i < nT; i++){
+    for (let j = 0; j < nH; j++){
+      g += `<rect x="${px(j).toFixed(1)}" y="${py(i).toFixed(1)}" width="${(cw + 0.5).toFixed(1)}" height="${(ch + 0.5).toFixed(1)}" fill="var(--s${heatStep(G.swbgt[i][j])})"/>`;
+    }
+  }
+  // Band thresholds as contours, so the bands are readable without relying on the ramp.
+  [[28, "var(--warn)"], [32, "var(--bad)"]].forEach(([thr, col]) => {
+    const pts = [];
+    for (let j = 0; j < nH; j++){
+      for (let i = 1; i < nT; i++){
+        const a = G.swbgt[i - 1][j], b = G.swbgt[i][j];
+        if ((a < thr && b >= thr)){
+          const f = (thr - a) / (b - a);
+          pts.push([px(j) + cw / 2, pyT(T.min + (i - 1 + f) * T.step)]);
+          break;
+        }
+      }
+    }
+    if (pts.length < 2) return;
+    g += `<polyline points="${pts.map(q => q[0].toFixed(1) + "," + q[1].toFixed(1)).join(" ")}" fill="none" stroke="${col}" stroke-width="2.5"/>`;
+    const first = pts[0];
+    g += `<text x="${(first[0] + 7).toFixed(1)}" y="${(first[1] - 8).toFixed(1)}" font-size="11" fill="${col}" paint-order="stroke" stroke="var(--surface)" stroke-width="4">${thr} &deg;C</text>`;
+  });
+  // axes
+  for (let v = Hp.min; v <= Hp.max; v += 20){
+    const x = px((v - Hp.min) / Hp.step) + cw / 2;
+    g += `<text x="${x.toFixed(1)}" y="${H - 14}" font-size="10.5" fill="var(--muted)" text-anchor="middle">${v}</text>`;
+  }
+  g += `<text x="${((W - mR + mL) / 2).toFixed(1)}" y="${H - 1}" font-size="10.5" fill="var(--muted)" text-anchor="middle">relative humidity %</text>`;
+  for (let v = 15; v <= 45; v += 5){
+    g += `<text x="${mL - 8}" y="${(pyT(v) + 4).toFixed(1)}" font-size="10.5" fill="var(--muted)" text-anchor="end">${v}</text>`;
+  }
+  g += `<text transform="translate(11,${(mT + (H - mT - mB) / 2).toFixed(1)}) rotate(-90)" font-size="10.5" fill="var(--muted)" text-anchor="middle">air temperature &deg;C</text>`;
+  g += `<g id="heatCross"></g><rect id="heatHit" x="${mL}" y="${mT}" width="${W - mL - mR}" height="${H - mT - mB}" fill="transparent"/>`;
+
+  const host = document.getElementById("heatMap");
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Simplified WBGT for every combination of air temperature and relative humidity">${g}</svg>`;
+
+  const tip = document.getElementById("heatTip"), body = host.parentElement;
+  const hit = host.querySelector("#heatHit");
+  hit.addEventListener("mousemove", ev => {
+    const svg = host.querySelector("svg"), b = svg.getBoundingClientRect();
+    const sx = W / b.width;
+    const j = Math.max(0, Math.min(nH - 1, Math.floor(((ev.clientX - b.left) * sx - mL) / cw)));
+    const i = Math.max(0, Math.min(nT - 1, nT - 1 - Math.floor(((ev.clientY - b.top) * sx - mT) / ch)));
+    const bb = body.getBoundingClientRect();
+    tipOn(tip, body, ev.clientX - bb.left, ev.clientY - bb.top,
+      `<strong>${G.swbgt[i][j]} &deg;C</strong> sWBGT<br>
+       <span class="k">${(T.min + i * T.step).toFixed(1)} &deg;C air &middot; ${Hp.min + j * Hp.step}% RH</span><br>
+       ${esc(G.bands[G.band_index[i][j]])}`);
+  });
+  hit.addEventListener("mouseleave", () => tipOff(tip));
+  updateHeatCross();
+}
+
+function updateHeatCross(){
+  const el = document.getElementById("heatCross");
+  if (!el || !D.heat_grid) return;
+  const G = D.heat_grid, T = G.temp_c, Hp = G.rh_pct;
+  const nT = G.swbgt.length, nH = G.swbgt[0].length;
+  const W = 600, H = 384, mL = 46, mR = 12, mT = 10, mB = 34;
+  const cw = (W - mL - mR) / nH, ch = (H - mT - mB) / nT;
+  const t = parseFloat(document.getElementById("tT").value);
+  const h = parseFloat(document.getElementById("tH").value);
+  if (!isFinite(t) || !isFinite(h)){ el.innerHTML = ""; return; }
+  const r = heatLookup(t, h);
+  const j = Math.round((r.h - Hp.min) / Hp.step), i = Math.round((r.t - T.min) / T.step);
+  const x = mL + j * cw, y = mT + (nT - 1 - i) * ch;
+  el.innerHTML =
+    `<rect x="${(x - 1).toFixed(1)}" y="${(y - 1).toFixed(1)}" width="${(cw + 2).toFixed(1)}" height="${(ch + 2).toFixed(1)}" fill="none" stroke="var(--surface)" stroke-width="4"/>` +
+    `<rect x="${(x - 1).toFixed(1)}" y="${(y - 1).toFixed(1)}" width="${(cw + 2).toFixed(1)}" height="${(ch + 2).toFixed(1)}" fill="none" stroke="var(--ink)" stroke-width="2"/>` +
+    `<text x="${(x + cw + 8).toFixed(1)}" y="${(y + 4).toFixed(1)}" font-size="11.5" fill="var(--ink)" paint-order="stroke" stroke="var(--surface)" stroke-width="4">${r.swbgt} &deg;C</text>`;
+}
+
+function renderMatrix(){
+  const doms = D.screening.domains;
+  const phases = [["pre_tournament","Pre-tournament"],["preparation_camp","Prep camp"],
+                  ["in_tournament","In tournament"],["post_tournament","Post-tournament"]];
+  const keys = Object.keys(doms);
+  let max = 1;
+  keys.forEach(k => phases.forEach(([pk]) => { max = Math.max(max, (doms[k][pk] || []).length); }));
+  document.getElementById("matrixScale").innerHTML =
+    [2,3,4,5,6,7,8].map(i => `<span style="background:var(--s${i})"></span>`).join("");
+  const head = `<thead><tr><th class="dom">Domain</th>${phases.map(([,l]) => `<th>${l}</th>`).join("")}</tr></thead>`;
+  const body = keys.map(k => {
+    const cells = phases.map(([pk]) => {
+      const n = (doms[k][pk] || []).length;
+      const step = n === 0 ? 0 : Math.max(2, Math.min(8, Math.round(2 + (n / max) * 6)));
+      const bg = n === 0 ? "var(--surface)" : `var(--s${step})`;
+      const ink = (!n) ? "var(--muted)" : (step >= 6 ? "var(--surface)" : "var(--ink)");
+      return `<td class="cell" data-k="${esc(k)}" title="${n} item${n === 1 ? "" : "s"}">
+        <span style="background:${bg};color:${ink}">${n || "&middot;"}</span></td>`;
+    }).join("");
+    return `<tr><th class="dom" scope="row">${esc(doms[k].label || k)}</th>${cells}</tr>`;
+  }).join("");
+  const el = document.getElementById("matrixTable");
+  el.innerHTML = head + `<tbody>${body}</tbody>`;
+  el.querySelectorAll("td.cell").forEach(td => td.addEventListener("click", () => {
+    const d = document.getElementById("dom-" + td.dataset.k);
+    if (!d) return;
+    d.open = true;
+    d.scrollIntoView({behavior: "smooth", block: "center"});
+  }));
+}
+
 function renderRefs(){
   document.getElementById("refList").innerHTML = Object.entries(D.references)
     .map(([k,r]) => `<li id="ref-${esc(k)}">${esc(r.cite||"")}
@@ -466,7 +897,9 @@ document.getElementById("usePill").addEventListener("click", e => {
 
 Promise.all(files.map(f => fetch(`data/${f}.json`).then(r => r.json()).then(j => D[f] = j)))
   .then(() => {
-    renderVenues(); renderScreening(); renderEvidence(""); renderAir(); renderRefs(); initTryIt();
+    renderVenues(); renderScreening(); renderEvidence(""); renderAir(); renderRefs();
+    renderBandLegend(); renderVenueChart(); renderVenueMap(); renderMatrix();
+    renderHeatScale(); renderHeatMap(); initTryIt();
     try {
       const t = localStorage.getItem("wwc27-tab");
       if (t) document.querySelector(`nav button[data-tab="${t}"]`)?.click();
