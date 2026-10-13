@@ -17,3 +17,8 @@ build/
 # It belongs in your home directory, not in the repository.
 y/
 google-cloud-sdk/
+
+# macOS Finder metadata. One was committed at the repository root and reached the
+# Zenodo archive; it is noise in a citable artifact.
+.DS_Store
+**/.DS_Store
