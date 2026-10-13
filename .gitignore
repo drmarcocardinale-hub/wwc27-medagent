@@ -22,3 +22,7 @@ google-cloud-sdk/
 # Zenodo archive; it is noise in a citable artifact.
 .DS_Store
 **/.DS_Store
+
+# Staging folder for files awaiting manual deletion. Never part of the repository:
+# renamed copies in here do not match the .DS_Store pattern above and were committed once.
+_to_delete/
