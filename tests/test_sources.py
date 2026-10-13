@@ -600,3 +600,25 @@ def test_mcp_handshake_reports_version():
     assert options.server_name == "wwc27-medagent"
     assert options.server_version, "serverInfo.version is empty - clients cannot identify the release"
     assert options.server_version == core.__version__
+
+
+def test_every_version_declaration_agrees():
+    """Four files declare the version, and Zenodo reads .zenodo.json in preference to
+    CITATION.cff. Two bumps updated the other three and missed it, so the archive published on
+    13 Oct 2026 held v0.5.3 code under metadata reading 0.5.1. Keep all four locked together."""
+    import json
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    pyproject = re.search(r'^version\s*=\s*"([^"]+)"',
+                          (root / "pyproject.toml").read_text(encoding="utf-8"),
+                          re.MULTILINE).group(1)
+    citation = re.search(r"^version:\s*(\S+)",
+                         (root / "CITATION.cff").read_text(encoding="utf-8"),
+                         re.MULTILINE).group(1)
+    zenodo = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))["version"]
+    assert core.__version__ == pyproject == citation == zenodo, (
+        f"version drift - core={core.__version__} pyproject={pyproject} "
+        f"CITATION.cff={citation} .zenodo.json={zenodo}"
+    )
