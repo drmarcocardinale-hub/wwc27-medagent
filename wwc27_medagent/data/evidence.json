@@ -3,11 +3,29 @@
   "id": "E01",
   "domain": "injury",
   "setting": "Men's WC 2014 (Brazil)",
-  "claim": "104 match injuries were reported (1.68 per match); 0.97 per match were expected to cause time loss.",
+  "claim": "104 match injuries were reported: 50.8 per 1000 player hours (95% CI 41.0 to 60.6), or 1.68 per match; 29.3 per 1000 player hours (95% CI 21.9 to 36.7), or 0.97 per match, were expected to cause time loss.",
   "values": {
    "injuries": 104,
+   "per_1000h": 50.8,
+   "per_1000h_ci": [
+    41.0,
+    60.6
+   ],
    "per_match": 1.68,
-   "time_loss_per_match": 0.97
+   "per_match_ci": [
+    1.36,
+    2.0
+   ],
+   "time_loss_per_1000h": 29.3,
+   "time_loss_per_1000h_ci": [
+    21.9,
+    36.7
+   ],
+   "time_loss_per_match": 0.97,
+   "time_loss_per_match_ci": [
+    0.72,
+    1.22
+   ]
   },
   "ref": "Junge2015",
   "keywords": [

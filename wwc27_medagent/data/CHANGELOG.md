@@ -2,6 +2,19 @@
 
 Each release is tagged, re-tested (`pytest`), and archived. Curators: Marco Cardinale, Celeste Geertsema [confirm].
 
+## 0.5.4 — 2026-10-13
+The 2014 World Cup injury figures now appear in both units the source publishes.
+
+- **E01 carries Junge & Dvořák's Table 1 in full.** The evidence table held only the per-match
+  rates (1.68 all injuries, 0.97 time-loss). Table 1 of that paper also gives 50.8 per 1000
+  player hours (95% CI 41.0 to 60.6) and 29.3 per 1000 player hours (95% CI 21.9 to 36.7), which
+  is the form the manuscript quotes and the form that compares with Qatar 2022's 20.6 per
+  1000 h. All eight figures and their confidence intervals are now in `values`.
+- **Keys were added, not renamed.** Benchmark item A18 reads `values["per_match"]`, and the
+  tool-layer check still reports 38/38, 12/12 and the two 7/10 held-out retrieval figures
+  unchanged, so the numbers quoted in the manuscript's section 5 still hold.
+- 98 automated tests, benchmark unchanged at 61 items.
+
 ## 0.5.3 — 2026-09-29
 A reader can now run the heat calculation without installing or connecting anything.
 
