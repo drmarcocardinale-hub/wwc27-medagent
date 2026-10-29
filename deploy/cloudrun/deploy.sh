@@ -68,16 +68,19 @@ echo "Building and deploying..."
 #   next request to a different instance. Stateless mode makes each request self-contained.
 # --min-instances 0: scale to zero. First request after idle waits a few seconds for a cold start.
 # --session-affinity: best-effort stickiness, which helps clients that do use sessions.
+# --update-env-vars, NOT --set-env-vars: --set replaces the whole environment block, so a
+#   GEMINI_API_KEY set on the service by hand would be wiped by the next deploy and the chat
+#   would quietly start asking every visitor for their own key. --update merges.
 gcloud run deploy "${SERVICE}" \
   --source . \
   --project "${PROJECT}" \
   --region "${REGION}" \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "MCP_STATELESS=1" \
+  --update-env-vars "MCP_STATELESS=1,CHAT_FREE_PER_DAY=8,CHAT_GLOBAL_PER_DAY=150" \
   --port 8080 \
   --cpu 1 --memory 512Mi \
-  --min-instances 0 --max-instances 3 \
+  --min-instances 0 --max-instances 2 \
   --concurrency 40 \
   --timeout 300 \
   --session-affinity \
@@ -89,8 +92,15 @@ URL="$(gcloud run services describe "${SERVICE}" --project "${PROJECT}" \
 echo
 echo "================================================================"
 echo "  Deployed."
+echo "  Chat page:     ${URL}"
 echo "  MCP endpoint:  ${URL}/mcp"
 echo "================================================================"
+echo
+echo "The chat at ${URL} needs a Gemini API key to answer off a shared key:"
+echo "  gcloud run services update ${SERVICE} --region ${REGION} \\"
+echo "    --update-env-vars GEMINI_API_KEY=YOUR_KEY"
+echo "Use a key from an AI Studio project with NO billing account linked, so it cannot bill."
+echo "Without a key the page still loads and asks each visitor for their own."
 echo
 echo "Check it:"
 echo "  curl -sS -X POST ${URL}/mcp \\"

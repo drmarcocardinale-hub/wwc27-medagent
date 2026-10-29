@@ -49,6 +49,10 @@ steps:
   # MCP_STATELESS=1: streamable HTTP keeps session state in one instance's memory, and
   # Cloud Run may route a follow-up request elsewhere. Stateless makes each request
   # self-contained. --min-instances 0 scales to zero, so idle cost is nil.
+  #
+  # --update-env-vars, NOT --set-env-vars: --set replaces the whole environment block, so a
+  # GEMINI_API_KEY set on the service by hand would be silently wiped by the next push and the
+  # chat would start asking every visitor for their own key. --update merges.
   - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
@@ -60,12 +64,12 @@ steps:
       - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=MCP_STATELESS=1'
+      - '--update-env-vars=MCP_STATELESS=1,CHAT_FREE_PER_DAY=8,CHAT_GLOBAL_PER_DAY=150'
       - '--port=8080'
       - '--cpu=1'
       - '--memory=512Mi'
       - '--min-instances=0'
-      - '--max-instances=3'
+      - '--max-instances=2'
       - '--concurrency=40'
       - '--timeout=300'
       - '--session-affinity'

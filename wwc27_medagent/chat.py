@@ -41,9 +41,19 @@ MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
 API_ROOT = os.environ.get(
     "GEMINI_API_ROOT", "https://generativelanguage.googleapis.com/v1beta/models")
 
-# Rationing. FREE_PER_DAY is per caller, not global; the global ceiling is the spend cap set at
-# the provider, which is the only limit that cannot be argued with by a determined client.
+# Rationing, in two layers because one is not enough.
+#
+# FREE_PER_DAY is per caller, and a caller is an IP address, so it only slows down someone
+# honest. Anything with a pool of addresses - a crawler, a scraper farm, someone annoyed -
+# gets FREE_PER_DAY questions per address and bills the house key for all of them. So there
+# is a second, global ceiling on questions answered off the house key per day, which no
+# number of addresses can get past.
+#
+# Neither of these is the last line of defence: that is the absence of a billing account on
+# the key's project, which makes overspend impossible rather than merely bounded. These two
+# exist so the free allowance is not exhausted by lunchtime by something that is not a reader.
 FREE_PER_DAY = int(os.environ.get("CHAT_FREE_PER_DAY", "8"))
+GLOBAL_PER_DAY = int(os.environ.get("CHAT_GLOBAL_PER_DAY", "150"))
 MAX_TOOL_CALLS = int(os.environ.get("CHAT_MAX_TOOL_CALLS", "6"))
 MAX_HISTORY = int(os.environ.get("CHAT_MAX_HISTORY", "12"))
 MAX_CHARS = int(os.environ.get("CHAT_MAX_CHARS", "1200"))
@@ -65,6 +75,7 @@ LIMIT_HIT = ("That question needed more tool calls than the limit allows. "
              "Try asking for one city or one topic at a time.")
 
 _quota: dict[str, tuple[str, int]] = {}      # caller -> (yyyy-mm-dd, questions used)
+_spent: tuple[str, int] = ("", 0)            # (yyyy-mm-dd, questions answered off the house key)
 
 
 # --------------------------------------------------------------------------- tool plumbing
@@ -234,7 +245,14 @@ def _today() -> str:
 
 
 def take_free_question(caller: str) -> bool:
-    """One free question off the house key, or False when this caller is out for the day."""
+    """One free question off the house key.
+
+    False when either ceiling is reached - this caller's for the day, or the instance's. Both
+    are enforced here rather than at the route, so there is one place to get it wrong.
+    """
+    global _spent
+    if global_left() <= 0:
+        return False
     day, used = _quota.get(caller, ("", 0))
     if day != _today():
         used = 0
@@ -242,6 +260,8 @@ def take_free_question(caller: str) -> bool:
         _quota[caller] = (_today(), used)
         return False
     _quota[caller] = (_today(), used + 1)
+    gday, gused = _spent
+    _spent = (_today(), (gused if gday == _today() else 0) + 1)
     if len(_quota) > 20000:                         # a crawler must not grow this without bound
         cutoff = _today()
         for k in [k for k, (d, _) in _quota.items() if d != cutoff][:10000]:
@@ -250,8 +270,16 @@ def take_free_question(caller: str) -> bool:
 
 
 def free_left(caller: str) -> int:
+    """What this caller may still ask today, never more than the instance has left."""
     day, used = _quota.get(caller, ("", 0))
-    return FREE_PER_DAY if day != _today() else max(0, FREE_PER_DAY - used)
+    mine = FREE_PER_DAY if day != _today() else max(0, FREE_PER_DAY - used)
+    return min(mine, global_left())
+
+
+def global_left() -> int:
+    """Questions this instance may still answer off the house key today."""
+    day, used = _spent
+    return GLOBAL_PER_DAY if day != _today() else max(0, GLOBAL_PER_DAY - used)
 
 
 def house_key() -> str:

@@ -165,12 +165,44 @@ def test_system_prompt_and_tools_are_sent(stub):
 def test_free_questions_are_counted_per_caller(monkeypatch):
     monkeypatch.setattr(chat, "FREE_PER_DAY", 2)
     monkeypatch.setattr(chat, "_quota", {})
+    monkeypatch.setattr(chat, "_spent", ("", 0))
     assert chat.free_left("1.2.3.4") == 2
     assert chat.take_free_question("1.2.3.4") is True
     assert chat.take_free_question("1.2.3.4") is True
     assert chat.take_free_question("1.2.3.4") is False, "a third free question was allowed"
     assert chat.free_left("1.2.3.4") == 0
     assert chat.take_free_question("5.6.7.8") is True, "one caller exhausted another's quota"
+
+
+def test_a_global_ceiling_survives_a_caller_changing_address(monkeypatch):
+    """The point of the global cap: per-caller rationing is per IP, and IPs are cheap.
+
+    Without this, something with a pool of addresses gets FREE_PER_DAY questions per address
+    and bills the house key for every one of them.
+    """
+    monkeypatch.setattr(chat, "FREE_PER_DAY", 8)
+    monkeypatch.setattr(chat, "GLOBAL_PER_DAY", 3)
+    monkeypatch.setattr(chat, "_quota", {})
+    monkeypatch.setattr(chat, "_spent", ("", 0))
+
+    taken = sum(chat.take_free_question("10.0.0.%d" % i) for i in range(20))
+    assert taken == 3, "a fresh address kept earning free questions past the global cap"
+    assert chat.global_left() == 0
+    assert chat.free_left("10.0.0.99") == 0, "a new caller is told 0, not FREE_PER_DAY"
+
+
+def test_hitting_the_global_cap_does_not_consume_a_callers_own_quota(monkeypatch):
+    """Refusing for the instance's reason must not also spend the visitor's day."""
+    monkeypatch.setattr(chat, "FREE_PER_DAY", 5)
+    monkeypatch.setattr(chat, "GLOBAL_PER_DAY", 1)
+    monkeypatch.setattr(chat, "_quota", {})
+    monkeypatch.setattr(chat, "_spent", ("", 0))
+
+    assert chat.take_free_question("1.1.1.1") is True
+    assert chat.take_free_question("2.2.2.2") is False
+    monkeypatch.setattr(chat, "GLOBAL_PER_DAY", 9)        # as a new day would
+    assert chat._quota.get("2.2.2.2") is None, "the refused caller was charged anyway"
+    assert chat.free_left("2.2.2.2") == 5
 
 
 def test_history_is_trimmed_so_a_long_thread_cannot_grow_without_bound(stub, monkeypatch):

@@ -283,9 +283,14 @@ async def api_chat(request: Request) -> JSONResponse:
                                           "API key to ask questions.", "need_key": True},
                                 status_code=402)
         if not chat.take_free_question(caller):
-            return JSONResponse({"error": f"That's the {chat.FREE_PER_DAY} free questions for "
-                                          "today. Add your own Gemini API key to carry on.",
-                                 "need_key": True}, status_code=429)
+            # Which ceiling was hit changes what the visitor should do about it, so say which.
+            exhausted = chat.global_left() <= 0
+            message = ("This instance has answered all of today's shared questions. Add your own "
+                       "Gemini API key to carry on, or come back tomorrow."
+                       if exhausted else
+                       f"That's the {chat.FREE_PER_DAY} free questions for today. Add your own "
+                       "Gemini API key to carry on.")
+            return JSONResponse({"error": message, "need_key": True}, status_code=429)
 
     try:
         result = await chat.answer(turns, key)

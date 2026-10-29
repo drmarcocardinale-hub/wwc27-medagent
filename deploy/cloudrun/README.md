@@ -30,8 +30,10 @@ REGION=southamerica-east1 ./deploy/cloudrun/deploy.sh   # São Paulo, nearest th
 | `MCP_STATELESS=1` | **The important one.** MCP's streamable HTTP transport keeps session state in the instance's memory. Cloud Run autoscales, so a follow-up request can arrive at a different instance, which then rejects the unknown session. Stateless mode makes every request self-contained. The only thing given up is server-initiated messages, which this server does not use. |
 | `--session-affinity` | Best-effort stickiness, which helps any client that still prefers sessions. |
 | `--min-instances 0` | Scale to zero. The first request after an idle period waits a few seconds for a cold start; set `--min-instances 1` to avoid that, at the cost of a small always-on charge. |
-| `--max-instances 3`, `--concurrency 40` | A ceiling, so a runaway client cannot generate an unbounded bill. |
+| `--max-instances 2`, `--concurrency 40` | A ceiling, so a runaway client cannot generate an unbounded bill. Two instances at 40 concurrent requests each is far more than this will ever need. |
 | `--memory 512Mi` | The server holds a few JSON files; it does not need more. |
+| `--update-env-vars`, **not** `--set-env-vars` | `--set` replaces the whole environment block, so a `GEMINI_API_KEY` set on the service by hand would be silently wiped by the next push and the chat would quietly start asking every visitor for their own key. `--update` merges. |
+| `CHAT_FREE_PER_DAY=8`, `CHAT_GLOBAL_PER_DAY=150` | The chat's two rationing layers. See below. |
 
 ## Check it worked
 
@@ -66,13 +68,63 @@ In Claude Desktop: Settings → Connectors → Add custom connector, and paste t
 Keep the distinction clear when you write it up: **Zenodo is the archive of record** and is what
 makes the work reproducible; the Cloud Run endpoint is convenience, and may move. Cite the DOI.
 
-## Cost and keeping it honest
+## Cost, and how to keep it at zero
 
-At scale-to-zero with this traffic the monthly cost is normally within the free allowance. Two
-guards worth setting anyway, since the endpoint is public:
+Two separate meters run here, and only one of them is Google Cloud. Mixing them up is how a
+free deployment turns into a bill.
 
-- a **budget alert** on the project (Billing → Budgets & alerts) so a surprise is caught early;
-- `--max-instances`, already set to 3 above.
+### Cloud Run: effectively free at this traffic
+
+The always-free monthly allowance is **180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million
+requests** for request-based billing, aggregated per *billing account* and reset monthly. At
+`--cpu 1 --memory 512Mi`, memory is not the binding constraint (360,000 ÷ 0.5 GiB = 720,000 s),
+so the CPU allowance is: **180,000 seconds of request time a month.**
+
+An MCP tool call returns in well under a second. A chat answer takes longer — perhaps 5–10
+seconds, because the model is called once per tool-use round — and under request-based billing
+CPU is allocated for the whole request, *including the time spent waiting for the model*. Even
+so, at 8 seconds a question that is roughly **22,000 chat answers a month** inside the free
+allowance. The `CHAT_GLOBAL_PER_DAY=150` ceiling below caps the month at ~4,500, about a fifth
+of it.
+
+`--min-instances 0` is what makes this true: an idle service that is not holding minimum
+instances is not charged at all. Do not set `--min-instances 1` to avoid cold starts unless you
+are willing to pay for an always-on instance.
+
+### The model API: this is the one that can cost money
+
+The chat calls the Gemini API with whatever key is in `GEMINI_API_KEY`, and that is billed by
+Google separately from Cloud Run. The rationing in `chat.py` bounds it but does not guarantee it.
+
+**The only hard guarantee is a key from an AI Studio project with no billing account linked.**
+The Gemini API free tier does not require a billing account, and limits apply per project. With
+no billing account there is nothing to charge: exceeding the free limits returns HTTP 429, which
+the chat already turns into "the model API is rate limited right now", and the reader is invited
+to supply their own key. Verify this before pointing readers at the page — a key created inside
+a project that happens to have billing enabled will bill.
+
+### The two rationing layers, and why one was not enough
+
+| Layer | Default | What it stops |
+|---|---|---|
+| `CHAT_FREE_PER_DAY` | 8 per caller per day | A single enthusiastic reader working through the whole evidence table. |
+| `CHAT_GLOBAL_PER_DAY` | 150 per instance per day | Everything the first layer cannot. A caller is an IP address, and an address is cheap: anything with a pool of them — a crawler, a scraper farm — collects 8 free questions *per address* and bills the house key for all of them. The global ceiling is what a rotating address cannot get past. |
+
+Both are enforced in `take_free_question`, so there is one place to get it wrong rather than two.
+A visitor who supplies their own key is not rationed at all, because it is not the house key
+being spent. Hitting the global ceiling does not consume the refused caller's own allowance, and
+both facts have tests (`tests/test_chat.py`).
+
+Neither layer is the last line of defence; the absent billing account is. These exist so the free
+allowance is not exhausted by lunchtime by something that is not a reader.
+
+### Worth setting anyway
+
+- A **budget alert** on the project (Billing → Budgets & alerts) — it catches a surprise early
+  even when you believe nothing can bill.
+- To turn the shared chat off entirely and have the page ask every visitor for their own key,
+  remove `GEMINI_API_KEY` from the service. The page, the tables and `/mcp` all keep working:
+  the chat is the only thing that depends on it.
 
 ## If the build fails
 
