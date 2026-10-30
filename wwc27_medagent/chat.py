@@ -54,7 +54,11 @@ API_ROOT = os.environ.get(
 # exist so the free allowance is not exhausted by lunchtime by something that is not a reader.
 FREE_PER_DAY = int(os.environ.get("CHAT_FREE_PER_DAY", "8"))
 GLOBAL_PER_DAY = int(os.environ.get("CHAT_GLOBAL_PER_DAY", "150"))
-MAX_TOOL_CALLS = int(os.environ.get("CHAT_MAX_TOOL_CALLS", "6"))
+# 6 was too mean in practice: "we are based in Sao Paulo and play in Fortaleza, Recife and Porto
+# Alegre, draft our plan" is a venue profile per city plus travel and screening, and the model
+# asks for them in one batch. The ceiling exists to bound a runaway conversation, not to refuse
+# ordinary questions, and the per-caller and per-day limits are what actually bound the spend.
+MAX_TOOL_CALLS = int(os.environ.get("CHAT_MAX_TOOL_CALLS", "12"))
 MAX_HISTORY = int(os.environ.get("CHAT_MAX_HISTORY", "12"))
 MAX_CHARS = int(os.environ.get("CHAT_MAX_CHARS", "1200"))
 TIMEOUT_S = float(os.environ.get("CHAT_TIMEOUT_S", "60"))
@@ -248,9 +252,12 @@ async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
     payload = {
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
-        "tools": [{"functionDeclarations": tools}],
         "generationConfig": {"temperature": 0.2, "maxOutputTokens": 900},
     }
+    # Offering no tools is how the final turn is forced to produce prose: a model that can still
+    # see the tools will keep asking for them.
+    if tools:
+        payload["tools"] = [{"functionDeclarations": tools}]
     url = f"{API_ROOT}/{MODEL}:generateContent"
     for attempt in range(RETRIES + 1):
         try:
@@ -263,6 +270,24 @@ async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
             # again immediately, and the whole budget here is under three seconds.
             await anyio.sleep(RETRY_BACKOFF_S * (2 ** attempt))
     raise AssertionError("unreachable")              # the loop either returns or raises
+
+
+NO_MORE_TOOLS = (
+    "You have used the tool budget for this question. Do not ask for more tools. Answer now "
+    "from the tool results above, keeping the sources, and finish by naming plainly whatever "
+    "part of the question you could not cover, so the reader can ask about it separately.")
+
+
+async def _wrap_up(contents: list[dict], key: str, trace: list[dict]) -> dict:
+    """One last turn with no tools offered, so the work already done still yields an answer."""
+    closing = contents + [{"role": "user", "parts": [{"text": NO_MORE_TOOLS}]}]
+    try:
+        data = await _generate(closing, None, key)
+        parts = ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts).strip()
+    except ChatError:
+        text = ""                                    # the budget message is better than an error
+    return {"answer": text or LIMIT_HIT, "tools": trace}
 
 
 async def answer(history: list[dict], key: str) -> dict:
@@ -293,8 +318,13 @@ async def answer(history: list[dict], key: str) -> dict:
 
         # Spend the budget on calls, not on loop turns: a model that asks for one tool per turn
         # would otherwise get MAX_TOOL_CALLS + 1 of them.
+        #
+        # Reaching the ceiling is not a reason to throw the work away. A plan covering four
+        # cities legitimately wants a call each, and refusing the batch outright discarded every
+        # result already gathered and showed the reader an error instead - which is exactly what
+        # it did in practice. Ask for prose from what is in hand, and say what went uncovered.
         if len(trace) + len(calls) > MAX_TOOL_CALLS:
-            return {"answer": LIMIT_HIT, "tools": trace}
+            return await _wrap_up(contents, key, trace)
 
         # Echo the model's own turn back verbatim rather than rebuilding it from the calls.
         #

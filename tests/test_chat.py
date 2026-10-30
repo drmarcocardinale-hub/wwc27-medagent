@@ -267,6 +267,37 @@ def test_a_call_without_a_signature_still_works(stub):
     assert out["answer"] == "ok"
 
 
+def _batch(*names):
+    """One model turn asking for several tools at once, as it does for a multi-city plan."""
+    parts = [{"functionCall": {"name": n, "args": {}}} for n in names]
+    return {"candidates": [{"content": {"role": "model", "parts": parts}}]}
+
+
+def test_hitting_the_tool_ceiling_still_answers_from_what_was_gathered(stub, monkeypatch):
+    """The real failure: two tools ran, the model asked for more than the budget allowed, and
+    the reader got an error instead of the work already done."""
+    monkeypatch.setattr(chat, "MAX_TOOL_CALLS", 2)
+    stub([_batch("tournament_facts", "tournament_facts"),      # 2 calls, within budget
+          _batch("tournament_facts", "tournament_facts"),      # 2 more would exceed it
+          _text("Here is the plan from what I could gather. I could not cover Recife.")])
+
+    out = asyncio.run(chat.answer([{"role": "user", "text": "draft our plan"}], "k"))
+
+    assert "could not cover" in out["answer"], "the reader got the limit message, not an answer"
+    assert len(out["tools"]) == 2, "the work already done was lost from the trace"
+
+    final = _Stub.seen[-1]
+    assert "tools" not in final, "tools were still offered, so it can keep asking for them"
+    assert "tool budget" in json.dumps(final["contents"]), "the model was not told to wrap up"
+
+
+def test_wrap_up_falls_back_to_the_limit_message_if_the_model_gives_nothing(stub, monkeypatch):
+    monkeypatch.setattr(chat, "MAX_TOOL_CALLS", 1)
+    stub([_batch("tournament_facts", "tournament_facts")])     # never yields prose
+    out = asyncio.run(chat.answer([{"role": "user", "text": "draft our plan"}], "k"))
+    assert "more tool calls than the limit" in out["answer"]
+
+
 def test_a_read_timeout_becomes_a_readable_message_not_an_exception_name(monkeypatch):
     """urlopen raises a bare TimeoutError on 3.10+, which used to escape as 'The agent failed:
     TimeoutError.' - an exception class name shown to a clinician."""
