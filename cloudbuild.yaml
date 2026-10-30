@@ -64,7 +64,7 @@ steps:
       - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--update-env-vars=MCP_STATELESS=1,CHAT_FREE_PER_DAY=8,CHAT_GLOBAL_PER_DAY=150,CHAT_DIAG=1'
+      - '--update-env-vars=MCP_STATELESS=1,CHAT_FREE_PER_DAY=8,CHAT_GLOBAL_PER_DAY=150'
       - '--port=8080'
       - '--cpu=1'
       - '--memory=512Mi'
@@ -74,3 +74,21 @@ steps:
       - '--timeout=300'
       - '--session-affinity'
       - '--quiet'
+
+  # Prove the thing that was deployed actually works. Deploying successfully says only that a
+  # container started: the MCP endpoint refused every remote client for days while every build
+  # was green, because nothing checked it from outside. This asks the live service real
+  # questions and fails the build when they do not come back right.
+  #
+  # It spends a few of the instance's free questions per deploy. If that ever becomes a problem,
+  # add --quick, which keeps the health, metadata and MCP checks and skips the questions.
+  - id: verify
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        URL="$$(gcloud run services describe "${_SERVICE}" \
+                 --region "${_REGION}" --format 'value(status.url)')"
+        echo "Checking $$URL"
+        python3 scripts/check_deployed.py --url "$$URL"

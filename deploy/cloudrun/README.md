@@ -146,6 +146,19 @@ allowance is not exhausted by lunchtime by something that is not a reader.
   remove `GEMINI_API_KEY` from the service. The page, the tables and `/mcp` all keep working:
   the chat is the only thing that depends on it.
 
+## The build checks itself
+
+`cloudbuild.yaml` ends with a `verify` step that runs `scripts/check_deployed.py` against the
+service it has just deployed, so a broken agent turns the build red instead of waiting to be
+noticed. That matters because a green build only ever meant a container started: the MCP
+endpoint refused every remote client with **421 Invalid Host header** for days while every build
+passed, since nothing checked it from outside.
+
+If the questions ever make builds flaky, or you would rather not spend the free questions on
+each deploy, add `--quick` to that step — it keeps the health, metadata and MCP checks, which is
+what would have caught the 421, and skips the three questions, which is what would have caught
+the model and timeout faults.
+
 ## If the build fails
 
 `gcloud builds log --region <region>` shows the Cloud Build output. The usual causes are billing
