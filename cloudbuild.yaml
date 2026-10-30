@@ -64,7 +64,7 @@ steps:
       - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--update-env-vars=MCP_STATELESS=1,CHAT_FREE_PER_DAY=8,CHAT_GLOBAL_PER_DAY=150'
+      - '--update-env-vars=MCP_STATELESS=1,CHAT_FREE_PER_DAY=8,CHAT_GLOBAL_PER_DAY=150,CHAT_DIAG=1'
       - '--port=8080'
       - '--cpu=1'
       - '--memory=512Mi'

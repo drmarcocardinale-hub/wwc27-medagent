@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import json
 import os
+import time
+
+import anyio
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -289,6 +292,59 @@ async def healthz(request: Request) -> PlainTextResponse:
     return PlainTextResponse("ok")
 
 
+def _probe(url: str, body: bytes | None, timeout: float) -> dict:
+    """Time one request and report what happened, without needing a key.
+
+    An unauthenticated call is enough: if the network path is open the API refuses it in
+    milliseconds, and if the path is blocked the connection hangs until the timeout. That
+    distinction is the whole question, and it needs no credential to answer.
+    """
+    import socket
+    import urllib.error
+    import urllib.request
+
+    host = url.split("/")[2]
+    out: dict = {"host": host}
+    try:
+        infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
+        out["resolves_to"] = sorted({i[4][0] for i in infos})[:6]
+    except Exception as exc:
+        out["resolves_to"] = "%s: %s" % (type(exc).__name__, exc)
+
+    started = time.monotonic()
+    try:
+        req = urllib.request.Request(url, data=body, method="POST" if body else "GET",
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            resp.read(200)
+            out["status"] = resp.status
+    except urllib.error.HTTPError as exc:
+        out["status"] = exc.code                       # a refusal still proves the path is open
+    except Exception as exc:
+        out["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:120])
+    out["seconds"] = round(time.monotonic() - started, 2)
+    return out
+
+
+async def diag(request: Request) -> JSONResponse:
+    """Why the model API is unreachable while everything else works. Off unless CHAT_DIAG=1."""
+    if os.environ.get("CHAT_DIAG", "") != "1":
+        return JSONResponse({"error": "Diagnostics are off."}, status_code=404)
+    gem = "%s/%s:generateContent" % (chat.API_ROOT, chat.MODEL)
+    checks = {
+        "model_api": lambda: _probe(gem, b'{"contents":[]}', 20),
+        # The control: a different host, same client, same container. It answers in under a
+        # second, which is what makes the model API's silence worth explaining.
+        "open_meteo": lambda: _probe("https://air-quality-api.open-meteo.com/v1/air-quality"
+                                     "?latitude=0&longitude=0&current=pm2_5", None, 20),
+        "google_other": lambda: _probe("https://oauth2.googleapis.com/token", b"{}", 20),
+    }
+    out = {}
+    for name, fn in checks.items():
+        out[name] = await anyio.to_thread.run_sync(fn)
+    return JSONResponse(out)
+
+
 async def api_chat(request: Request) -> JSONResponse:
     try:
         body = await request.json()
@@ -381,6 +437,7 @@ def build_app():
         Route("/", page),
         Route("/healthz", healthz),
         Route("/api/meta", meta),
+        Route("/api/diag", diag),
         Route("/api/chat", api_chat, methods=["POST"]),
         Mount("/", app=mcp_app),
     ]
