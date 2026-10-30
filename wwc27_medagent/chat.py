@@ -70,6 +70,11 @@ TIMEOUT_S = float(os.environ.get("CHAT_TIMEOUT_S", "90"))
 DEADLINE_S = float(os.environ.get("CHAT_DEADLINE_S", "200"))
 WRAP_UP_TIMEOUT_S = float(os.environ.get("CHAT_WRAP_UP_TIMEOUT_S", "45"))
 
+# 0 turns thinking off, -1 omits the setting and lets the model decide. See _generation_config.
+THINKING_BUDGET = int(os.environ.get("CHAT_THINKING_BUDGET", "0"))
+# 900 was thin for a plan covering four cities; the answer is the whole deliverable here.
+MAX_OUTPUT_TOKENS = int(os.environ.get("CHAT_MAX_OUTPUT_TOKENS", "1600"))
+
 # Transient failures worth absorbing rather than showing. "This model is currently experiencing
 # high demand" is the common one and usually clears in seconds, but a reader does not retry: they
 # read the error once and conclude the agent is broken. Since this page is cited in an article,
@@ -176,6 +181,25 @@ async def run_tool(name: str, args: dict) -> str:
 
 # --------------------------------------------------------------------------- the model call
 
+def _generation_config() -> dict:
+    """Generation settings, with thinking turned down by default.
+
+    Measured against the deployed service: the simplest question in the set - one city, one
+    tool - did not return a first response in 90 seconds, with no tool called. The same key
+    answering a bare prompt replies instantly, so the cost is the model deliberating over nine
+    tool declarations before its first move, not the tools or the loop.
+
+    This agent reads values out of a curated table and reports them with a source. That is
+    retrieval, not reasoning, so a large thinking budget buys little and costs the reader a
+    minute. CHAT_THINKING_BUDGET raises it for anyone who wants more deliberation; -1 omits the
+    setting and leaves the model to decide, which is the behaviour that was too slow to use.
+    """
+    config: dict = {"temperature": 0.2, "maxOutputTokens": MAX_OUTPUT_TOKENS}
+    if THINKING_BUDGET >= 0:
+        config["thinkingConfig"] = {"thinkingBudget": THINKING_BUDGET}
+    return config
+
+
 def _post(url: str, payload: dict, key: str, timeout: float | None = None) -> dict:
     timeout = TIMEOUT_S if timeout is None else timeout
     body = json.dumps(payload).encode()
@@ -265,7 +289,7 @@ async def _generate(contents: list[dict], tools: list[dict] | None, key: str,
     payload = {
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 900},
+        "generationConfig": _generation_config(),
     }
     # Offering no tools is how the final turn is forced to produce prose: a model that can still
     # see the tools will keep asking for them.

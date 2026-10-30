@@ -168,6 +168,24 @@ def test_system_prompt_and_tools_are_sent(stub):
     assert sent["tools"][0]["functionDeclarations"], "no tools were offered to the model"
 
 
+def test_thinking_is_turned_down_by_default(stub):
+    """Measured on the deployed service: with the model left to deliberate over nine tool
+    declarations, the simplest question did not return a first response inside 90 seconds."""
+    stub([_text("ok")])
+    asyncio.run(chat.answer([{"role": "user", "text": "hi"}], "k"))
+    cfg = _Stub.seen[0]["generationConfig"]
+    assert cfg["thinkingConfig"]["thinkingBudget"] == 0
+    assert cfg["maxOutputTokens"] >= 1600, "too thin for a multi-city plan"
+
+
+def test_thinking_budget_is_configurable(monkeypatch):
+    monkeypatch.setattr(chat, "THINKING_BUDGET", 512)
+    assert chat._generation_config()["thinkingConfig"] == {"thinkingBudget": 512}
+
+    monkeypatch.setattr(chat, "THINKING_BUDGET", -1)       # leave it to the model
+    assert "thinkingConfig" not in chat._generation_config()
+
+
 # --------------------------------------------------------------------------- rationing
 
 def test_free_questions_are_counted_per_caller(monkeypatch):
