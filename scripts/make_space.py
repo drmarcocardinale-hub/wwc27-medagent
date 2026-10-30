@@ -44,7 +44,21 @@ SPACE_NAME = "wwc27-medagent"
 
 # Only what the server needs at runtime. The benchmark, tests, docs and site stay in the
 # GitHub repository; the Space is the live endpoint, not a second copy of the project.
-COPY = ["wwc27_medagent", "pyproject.toml", "LICENSE", "Dockerfile"]
+COPY = ["wwc27_medagent", "pyproject.toml", "LICENSE"]
+
+# The Space serves the chat page at / and the MCP endpoint at /mcp from one process. The
+# repository's own Dockerfile stays as it is because Cloud Run deploys from it, and that
+# deployment is the endpoint cited in the paper: it should keep doing exactly one thing.
+DOCKERFILE = """FROM python:3.11-slim
+WORKDIR /app
+COPY . /app
+RUN pip install --no-cache-dir .
+EXPOSE 7860
+ENV PORT=7860
+# Every MCP request is self-contained, so a restart cannot strand a client mid-session.
+ENV MCP_STATELESS=1
+CMD ["wwc27-medagent", "--web"]
+"""
 
 README = """---
 title: WWC27-MedAgent
@@ -55,13 +69,17 @@ sdk: docker
 app_port: 7860
 pinned: false
 license: mit
-short_description: Medical preparation agent for the 2027 Women's World Cup
+short_description: Ask the 2027 Women's World Cup medical preparation agent
 ---
 
 # WWC27-MedAgent
 
-A **Model Context Protocol (MCP) server** carrying the evidence base, host-city data and
-screening matrix from the Current Opinion *"Sports Medicine and Science Considerations to
+Ask it a question on this page, or connect your own AI assistant to it.
+
+This Space serves two things from one container: a **chat page** at `/`, and the
+**Model Context Protocol (MCP) endpoint** at `/mcp`. Both answer from the same tools - the chat
+calls them through the MCP server itself, so the two cannot drift apart. It carries the evidence
+base, host-city data and screening matrix from the Current Opinion *"Sports Medicine and Science Considerations to
 Maximise Preparation for the FIFA Women's World Cup Brazil 2027: From Static Evidence to a
 Living Agent"* (Cardinale & Geertsema, submitted to *Sports Medicine*).
 
@@ -72,7 +90,29 @@ It follows the Paper2Agent model (Miao et al., *Nature* 2026,
 > not replace clinical judgement, on-site WBGT measurement or current public-health advice.
 > **Do not enter identifiable player data.**
 
-## Connect to it
+## Ask it here
+
+Open the Space and type a question. A few questions a day run on the maintainer's key; after
+that, paste your own [Gemini API key](https://aistudio.google.com/apikey), which is held in your
+browser tab for that session only and never stored on the server.
+
+Questions are sent to Google's Gemini API to be answered, so **do not enter player names or any
+identifiable detail**. Nothing here writes a transcript to disk.
+
+### Running your own copy
+
+Duplicate the Space and set one secret, under Settings -> Variables and secrets:
+
+| Name | What it is |
+|---|---|
+| `GEMINI_API_KEY` | A Gemini API key. Without it the page loads and asks every visitor for theirs. |
+| `GEMINI_MODEL` | Optional. Defaults to `gemini-flash-latest`. |
+| `CHAT_FREE_PER_DAY` | Optional. Free questions per visitor per day, default 8. |
+
+Set a spend cap on the key at the provider. That is the only limit a determined client cannot
+argue with.
+
+## Connect your own assistant
 
 The endpoint is `https://{hf}-wwc27-medagent.hf.space/mcp` (streamable HTTP).
 
@@ -98,9 +138,9 @@ respiratory care, air-quality sources, evidence search, tournament facts), seven
 resources and two guided prompts. Evidence search answers **"I don't know"** when a question
 falls outside the curated evidence base rather than improvising.
 
-## Browse without an AI client
+## Browse without asking anything
 
-The same tables as a plain web page: <https://drmarcocardinale-hub.github.io/wwc27-medagent/>
+The same tables as a plain web page, with no model involved: <https://drmarcocardinale-hub.github.io/wwc27-medagent/>
 
 ## Source, archive and citation
 
@@ -137,6 +177,7 @@ def main() -> int:
                 raise SystemExit(f"short_description is {len(value)} characters; "
                                  f"Hugging Face allows 60:\n  {value}")
     (OUT / "README.md").write_text(readme, encoding="utf-8")
+    (OUT / "Dockerfile").write_text(DOCKERFILE, encoding="utf-8")
     (OUT / ".gitattributes").write_text("*.json text\n*.md text\n", encoding="utf-8")
     (OUT / ".gitignore").write_text(
         "__pycache__/\n*.pyc\n.DS_Store\n", encoding="utf-8")

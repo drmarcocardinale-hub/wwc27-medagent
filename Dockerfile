@@ -8,4 +8,6 @@ RUN pip install --no-cache-dir .
 EXPOSE 7860
 # Hugging Face Spaces default port
 ENV PORT=7860
-CMD ["wwc27-medagent", "--http"]
+# --web serves the chat page at / AND the MCP endpoint at /mcp from one process. --http serves
+# only /mcp, which is why the bare URL returned nothing before this.
+CMD ["wwc27-medagent", "--web"]
