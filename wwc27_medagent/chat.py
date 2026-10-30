@@ -59,6 +59,18 @@ MAX_HISTORY = int(os.environ.get("CHAT_MAX_HISTORY", "12"))
 MAX_CHARS = int(os.environ.get("CHAT_MAX_CHARS", "1200"))
 TIMEOUT_S = float(os.environ.get("CHAT_TIMEOUT_S", "60"))
 
+# Transient failures worth absorbing rather than showing. "This model is currently experiencing
+# high demand" is the common one and usually clears in seconds, but a reader does not retry: they
+# read the error once and conclude the agent is broken. Since this page is cited in an article,
+# that impression is expensive and the fix is cheap.
+#
+# Only codes that a retry can plausibly fix. A rejected key or a malformed request will be
+# rejected again just as fast, and retrying those would add delay to an error the reader needs
+# to see now.
+RETRY_ON = frozenset({429, 500, 502, 503, 504})
+RETRIES = int(os.environ.get("CHAT_RETRIES", "2"))          # extra attempts after the first
+RETRY_BACKOFF_S = float(os.environ.get("CHAT_RETRY_BACKOFF_S", "0.6"))
+
 SYSTEM = (
     "You are the paper agent for the Current Opinion 'Sports Medicine and Science Considerations "
     "to Maximise Preparation for the FIFA Women's World Cup Brazil 2027' (Cardinale & Geertsema). "
@@ -220,8 +232,17 @@ async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
         "generationConfig": {"temperature": 0.2, "maxOutputTokens": 900},
     }
     url = f"{API_ROOT}/{MODEL}:generateContent"
-    # urllib blocks, and this runs inside the event loop that also serves /mcp.
-    return await anyio.to_thread.run_sync(lambda: _post(url, payload, key))
+    for attempt in range(RETRIES + 1):
+        try:
+            # urllib blocks, and this runs inside the event loop that also serves /mcp.
+            return await anyio.to_thread.run_sync(lambda: _post(url, payload, key))
+        except ChatError as exc:
+            if exc.status not in RETRY_ON or attempt == RETRIES:
+                raise
+            # Back off a little between tries: an overloaded model is not helped by being asked
+            # again immediately, and the whole budget here is under three seconds.
+            await anyio.sleep(RETRY_BACKOFF_S * (2 ** attempt))
+    raise AssertionError("unreachable")              # the loop either returns or raises
 
 
 async def answer(history: list[dict], key: str) -> dict:

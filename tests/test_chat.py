@@ -87,8 +87,13 @@ class _Stub(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(length) or b"{}")
         _Stub.seen.append(body)
         reply = _Stub.script[min(len(_Stub.seen) - 1, len(_Stub.script) - 1)]
+        # A scripted entry may ask for an HTTP error, so the retry path can be exercised.
+        status = 200
+        if isinstance(reply, dict) and "__status__" in reply:
+            reply = dict(reply)
+            status = reply.pop("__status__")
         data = json.dumps(reply).encode()
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
@@ -231,6 +236,47 @@ def test_explain_survives_a_body_that_is_not_json():
     assert "server error" in chat._explain(502, "<html>gateway</html>")
     assert chat._reason("<html>gateway</html>") == ("", "")
     assert "404" in chat._explain(404, ""), "an unmapped code should still name itself"
+
+
+# --------------------------------------------------------------------------- retrying
+
+def _err(status, message, reason=None):
+    detail = {"code": status, "message": message}
+    if reason:
+        detail["details"] = [{"reason": reason}]
+    return {"__status__": status, "error": detail}
+
+
+OVERLOADED = "This model is currently experiencing high demand."
+
+
+def test_a_transient_overload_is_absorbed_rather_than_shown(stub, monkeypatch):
+    """The real failure Marco hit: Gemini busy, clears in seconds, reader never retries."""
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    stub([_err(503, OVERLOADED), _text("32.4 C, very high.")])
+    out = asyncio.run(chat.answer([{"role": "user", "text": "Salvador?"}], "k"))
+    assert out["answer"] == "32.4 C, very high.", "a transient 503 reached the reader"
+    assert len(_Stub.seen) == 2, "it did not retry"
+
+
+def test_a_persistent_overload_still_reports_googles_words(stub, monkeypatch):
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    monkeypatch.setattr(chat, "RETRIES", 2)
+    stub([_err(503, OVERLOADED)])
+    with pytest.raises(chat.ChatError) as got:
+        asyncio.run(chat.answer([{"role": "user", "text": "Salvador?"}], "k"))
+    assert OVERLOADED in str(got.value), "Google's explanation was dropped"
+    assert len(_Stub.seen) == 3, "expected the first try plus two retries"
+
+
+def test_a_rejected_key_is_not_retried(stub, monkeypatch):
+    """Retrying a bad key only delays an error the reader needs to act on."""
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    stub([_err(400, "API key not valid. Please pass a valid API key.", "API_KEY_INVALID")])
+    with pytest.raises(chat.ChatError) as got:
+        asyncio.run(chat.answer([{"role": "user", "text": "hi"}], "k"))
+    assert "rejected the key itself" in str(got.value)
+    assert len(_Stub.seen) == 1, "a bad key was retried"
 
 
 def test_history_is_trimmed_so_a_long_thread_cannot_grow_without_bound(stub, monkeypatch):
