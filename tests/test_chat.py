@@ -205,6 +205,34 @@ def test_hitting_the_global_cap_does_not_consume_a_callers_own_quota(monkeypatch
     assert chat.free_left("2.2.2.2") == 5
 
 
+def test_a_400_distinguishes_a_bad_key_from_a_bad_request():
+    """Both arrive as 400 INVALID_ARGUMENT and need opposite actions from the reader."""
+    bad_key = json.dumps({"error": {"code": 400, "status": "INVALID_ARGUMENT",
+                                    "message": "API key not valid. Please pass a valid API key.",
+                                    "details": [{"reason": "API_KEY_INVALID"}]}})
+    assert "rejected the key itself" in chat._explain(400, bad_key)
+
+    bad_request = json.dumps({"error": {"code": 400, "status": "INVALID_ARGUMENT",
+                                        "message": "Invalid JSON payload received."}})
+    out = chat._explain(400, bad_request)
+    assert "fault in the agent" in out, "a malformed request blamed the reader's key"
+    assert "Invalid JSON payload" in out, "Google's own message was discarded"
+
+
+def test_a_disabled_api_is_not_reported_as_a_bad_key():
+    detail = json.dumps({"error": {"code": 403, "message": "Generative Language API has not been "
+                                   "used in project 123 before or it is disabled.",
+                                   "details": [{"reason": "SERVICE_DISABLED"}]}})
+    assert "not allowed to use this API" in chat._explain(403, detail)
+
+
+def test_explain_survives_a_body_that_is_not_json():
+    """Gateways return HTML, not JSON; parsing it must not raise on the error path."""
+    assert "server error" in chat._explain(502, "<html>gateway</html>")
+    assert chat._reason("<html>gateway</html>") == ("", "")
+    assert "404" in chat._explain(404, ""), "an unmapped code should still name itself"
+
+
 def test_history_is_trimmed_so_a_long_thread_cannot_grow_without_bound(stub, monkeypatch):
     monkeypatch.setattr(chat, "MAX_HISTORY", 4)
     stub([_text("ok")])

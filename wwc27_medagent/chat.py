@@ -164,17 +164,46 @@ def _post(url: str, payload: dict, key: str) -> dict:
         raise ChatError(f"Could not reach the model API: {exc.reason}", status=502) from None
 
 
+def _reason(detail: str) -> tuple[str, str]:
+    """Google's own machine reason and human message, or empty strings.
+
+    Worth the parsing: a 400 from this API is INVALID_ARGUMENT, which covers both a bad key and a
+    request this code built wrongly. Those need opposite actions from whoever is reading the page,
+    and the previous version of this function told them to check their key either way.
+    """
+    try:
+        err = (json.loads(detail) or {}).get("error") or {}
+    except Exception:
+        return "", ""
+    reason = ""
+    for d in err.get("details") or []:
+        if isinstance(d, dict) and d.get("reason"):
+            reason = str(d["reason"])
+            break
+    return reason, str(err.get("message") or "")
+
+
 def _explain(code: int, detail: str) -> str:
-    if code in (400, 401, 403):
-        return ("The model API rejected the key. If you supplied your own, check it is a Gemini "
-                "API key from aistudio.google.com and that the Generative Language API is "
-                f"enabled for it. ({code})")
+    reason, message = _reason(detail)
+    tail = f" Google said: {message}" if message else ""
+
+    if reason == "API_KEY_INVALID" or "api key not valid" in message.lower():
+        return ("The model API rejected the key itself. If you supplied your own, check it is a "
+                "Gemini API key from aistudio.google.com and was pasted whole." + tail)
+    if reason in ("SERVICE_DISABLED", "API_KEY_SERVICE_BLOCKED") or code == 403:
+        return ("The key is recognised but not allowed to use this API. Enable the Generative "
+                "Language API on its project, and check the key has no API or referrer "
+                "restriction that excludes it." + tail)
     if code == 429:
         return ("The model API is rate limited right now - that is Google's per-key quota, not "
                 "this page. Wait a minute, or supply your own key.")
     if code >= 500:
-        return "The model API returned a server error. Try again in a moment."
-    return f"The model API returned {code}: {detail}"
+        return "The model API returned a server error. Try again in a moment." + tail
+    if code == 400:
+        # Not a key problem: the request itself was refused, which is this server's fault.
+        return ("The model API refused the request. This is a fault in the agent, not in your "
+                "key - please report it." + tail)
+    return f"The model API returned {code}.{tail}"
 
 
 class ChatError(Exception):
