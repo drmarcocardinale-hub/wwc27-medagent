@@ -168,6 +168,15 @@ def test_system_prompt_and_tools_are_sent(stub):
     assert sent["tools"][0]["functionDeclarations"], "no tools were offered to the model"
 
 
+def test_the_model_is_pinned_not_a_floating_alias():
+    """A "-latest" alias is hot-swapped with every new release, so the model behind a running
+    service changes without warning - which is what began timing out every question here. A
+    resource cited in a paper has to be reproducible."""
+    assert not chat.MODEL.endswith("-latest"), (
+        "%s is a floating alias; pin a version so the agent cannot change underneath the paper"
+        % chat.MODEL)
+
+
 def test_thinking_is_turned_down_by_default(stub):
     """Measured on the deployed service: with the model left to deliberate over nine tool
     declarations, the simplest question did not return a first response inside 90 seconds."""
@@ -260,7 +269,7 @@ def test_explain_survives_a_body_that_is_not_json():
 
 
 def test_a_thought_signature_travels_back_with_the_call(stub):
-    """gemini-flash-latest is a thinking model: it attaches a thoughtSignature to each
+    """A thinking model attaches a thoughtSignature to each
     functionCall part, and the API rejects the next turn with 400 if it does not come back.
 
     Rebuilding the model turn as {"functionCall": c} kept the call and dropped the signature,

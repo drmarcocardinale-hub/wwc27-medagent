@@ -106,7 +106,7 @@ Duplicate the Space and set one secret, under Settings -> Variables and secrets:
 | Name | What it is |
 |---|---|
 | `GEMINI_API_KEY` | A Gemini API key. Without it the page loads and asks every visitor for theirs. |
-| `GEMINI_MODEL` | Optional. Defaults to `gemini-flash-latest`. |
+| `GEMINI_MODEL` | Optional. Defaults to a pinned Flash-Lite model; see chat.py for why it is not a `-latest` alias. |
 | `CHAT_FREE_PER_DAY` | Optional. Free questions per visitor per day, default 8. |
 
 Set a spend cap on the key at the provider. That is the only limit a determined client cannot

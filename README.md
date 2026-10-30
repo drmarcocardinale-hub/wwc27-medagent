@@ -28,7 +28,7 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ```bash
 git clone https://github.com/drmarcocardinale-hub/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
-pytest -q                          # 135 tests: source values, computations, refusal, MCP registration, version reporting, site/agent parity, benchmark integrity
+pytest -q                          # 136 tests: source values, computations, refusal, MCP registration, version reporting, site/agent parity, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check
 python scripts/check_deployed.py   # end-to-end check against the live service (see below)
 ```

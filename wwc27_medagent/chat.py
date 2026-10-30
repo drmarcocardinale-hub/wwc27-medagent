@@ -35,7 +35,16 @@ import anyio
 
 from . import core
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
+# Pinned, not an alias. The default was gemini-flash-latest, and Google's own documentation says
+# a "-latest" alias is hot-swapped with every new release of that variation: the model behind a
+# running service changes without warning, and the service's behaviour changes with it. That is
+# what happened here - the agent worked, then began taking over 90 seconds per question, with no
+# change to this code, the key or the network. A resource cited in a paper has to be reproducible,
+# so the version is pinned here and moved deliberately. GEMINI_MODEL overrides it.
+#
+# Flash-Lite is the right tier for this workload: the agent reads values from a curated table and
+# reports them with a source, which is retrieval, not reasoning.
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 # Overridable so the tool-calling loop can be exercised against a stub; nothing else
 # in this file is worth testing without one.
 API_ROOT = os.environ.get(
