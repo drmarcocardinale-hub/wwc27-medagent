@@ -187,6 +187,29 @@ def test_thinking_is_turned_down_by_default(stub):
     assert cfg["maxOutputTokens"] >= 1600, "too thin for a multi-city plan"
 
 
+def test_a_model_that_rejects_thinkingconfig_is_retried_without_it(stub, monkeypatch):
+    """Pinning a Flash-Lite model made every call fail with "invalid argument" because of a
+    setting a different model had been happy with. Recover rather than require the operator to
+    know which generationConfig each model tolerates."""
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    stub([_err(400, "Request contains an invalid argument."), _text("32.4 C, very high.")])
+
+    out = asyncio.run(chat.answer([{"role": "user", "text": "Salvador?"}], "k"))
+
+    assert out["answer"] == "32.4 C, very high.", "a recoverable config error reached the reader"
+    assert "thinkingConfig" in _Stub.seen[0]["generationConfig"], "the first try should include it"
+    assert "thinkingConfig" not in _Stub.seen[1]["generationConfig"], "it was not dropped"
+
+
+def test_a_400_that_is_not_about_thinking_still_surfaces(stub, monkeypatch):
+    """The retry must not swallow a genuine bad request - it drops the setting once, no more."""
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    stub([_err(400, "Request contains an invalid argument.")])
+    with pytest.raises(chat.ChatError):
+        asyncio.run(chat.answer([{"role": "user", "text": "hi"}], "k"))
+    assert len(_Stub.seen) == 2, "expected one retry without thinkingConfig, then give up"
+
+
 def test_thinking_budget_is_configurable(monkeypatch):
     monkeypatch.setattr(chat, "THINKING_BUDGET", 512)
     assert chat._generation_config()["thinkingConfig"] == {"thinkingBudget": 512}

@@ -220,7 +220,8 @@ def _post(url: str, payload: dict, key: str, timeout: float | None = None) -> di
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as exc:                      # surface Google's own message
         detail = exc.read().decode(errors="replace")[:600]
-        raise ChatError(_explain(exc.code, detail), status=exc.code) from None
+        reason, _ = _reason(detail)
+        raise ChatError(_explain(exc.code, detail), status=exc.code, reason=reason) from None
     except TimeoutError as exc:
         # socket.timeout IS TimeoutError on 3.10+, and urlopen raises it bare rather than
         # wrapping it in URLError, so it slipped past the handler below and reached the page as
@@ -284,9 +285,14 @@ def _explain(code: int, detail: str) -> str:
 
 
 class ChatError(Exception):
-    def __init__(self, message: str, status: int = 400, retryable: bool | None = None):
+    def __init__(self, message: str, status: int = 400, retryable: bool | None = None,
+                 reason: str = ""):
         super().__init__(message)
         self.status = status
+        # Google's machine-readable reason, kept so decisions can be made on it rather than on
+        # the status alone: 400 covers both a rejected key and a request this code built wrongly,
+        # and only one of those is worth retrying differently.
+        self.reason = reason
         # Status alone is not enough to decide. A timeout is reported as 504, which is normally
         # worth retrying, but it has already spent the full timeout waiting - trying twice more
         # would leave someone staring at a blank page for three minutes to reach the same end.
@@ -305,11 +311,22 @@ async def _generate(contents: list[dict], tools: list[dict] | None, key: str,
     if tools:
         payload["tools"] = [{"functionDeclarations": tools}]
     url = f"{API_ROOT}/{MODEL}:generateContent"
+    dropped_thinking = False
     for attempt in range(RETRIES + 1):
         try:
             # urllib blocks, and this runs inside the event loop that also serves /mcp.
             return await anyio.to_thread.run_sync(lambda: _post(url, payload, key, timeout))
         except ChatError as exc:
+            # Models differ in what generationConfig they accept: a Flash-Lite tier can reject a
+            # thinkingConfig outright with "invalid argument", which is fatal yet trivially
+            # recoverable. Drop it once and retry, so pinning a different model does not also
+            # require someone to know which settings that model tolerates.
+            if (exc.status == 400 and exc.reason != "API_KEY_INVALID" and not dropped_thinking
+                    and "thinkingConfig" in payload.get("generationConfig", {})):
+                payload["generationConfig"] = {
+                    k: v for k, v in payload["generationConfig"].items() if k != "thinkingConfig"}
+                dropped_thinking = True
+                continue
             if not exc.retryable or attempt == RETRIES:
                 raise
             # Back off a little between tries: an overloaded model is not helped by being asked
