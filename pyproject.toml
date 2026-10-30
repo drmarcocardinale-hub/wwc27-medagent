@@ -17,7 +17,6 @@ bench = ["anthropic>=0.40"]
 
 [project.scripts]
 wwc27-medagent = "wwc27_medagent.server:main"
-wwc27-medagent-web = "wwc27_medagent.web:main"
 
 [tool.setuptools.packages.find]
 include = ["wwc27_medagent*"]

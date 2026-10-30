@@ -37,8 +37,7 @@ python benchmark/run_tool_check.py # tool-layer benchmark check
 | | Link | Needs |
 |---|---|---|
 | **Read the tables in a browser** | <https://drmarcocardinale-hub.github.io/wwc27-medagent/> | nothing |
-| **Ask it questions in a browser** | the Cloud Run service's own root URL — see [`deploy/cloudrun/`](deploy/cloudrun/README.md) | nothing |
-| **Use it as an AI agent, hosted** | the same service's `/mcp` path | an MCP client |
+| **Use it as an AI agent, hosted** | Cloud Run endpoint — see [`deploy/cloudrun/`](deploy/cloudrun/README.md) | an MCP client |
 | **Run it locally** | `pip install -e .` then the config below | Python 3.10+ |
 | **See what it answers, no client** | `python scripts/demo.py` | Python 3.10+ |
 
@@ -58,7 +57,7 @@ Space as an alternative.
 
 **Claude Code:** `claude mcp add wwc27-medagent -- wwc27-medagent`
 
-**Remote (optional):** `wwc27-medagent --http` serves streamable HTTP on port 8000 (set `PORT` to change it). `wwc27-medagent --web` serves the same `/mcp` endpoint *plus* a chat page at `/` for readers who will not configure an MCP client; it is what the included `Dockerfile` runs. The chat needs a `GEMINI_API_KEY` to answer off a shared key, and rations it — see [`deploy/cloudrun/README.md`](deploy/cloudrun/README.md) for the cost controls. Without a key the page still loads and asks each visitor for their own.
+**Remote (optional):** `wwc27-medagent --http` serves streamable HTTP on port 8000 (set `PORT` to change it). A `Dockerfile` is included for institutional or cloud hosting.
 
 Example questions:
 - *"We're based in São Paulo and play in Fortaleza, Recife and Porto Alegre. Draft our pre-tournament medical plan."*

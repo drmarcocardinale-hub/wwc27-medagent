@@ -203,12 +203,6 @@ def venue_briefing(city: str) -> str:
 
 
 def main() -> None:
-    if "--web" in sys.argv:
-        # Chat page plus the MCP endpoint in one process. Kept behind a flag so the Cloud Run
-        # deployment, which is the endpoint cited in the paper, carries on serving /mcp alone.
-        from .web import main as web_main
-        web_main()
-        return
     if "--http" in sys.argv:
         host, port = "0.0.0.0", int(os.environ.get("PORT", "8000"))
         # Streamable HTTP keeps per-session state on the instance that created it. On a
