@@ -28,9 +28,17 @@ WWC27-MedAgent is a **paper agent** for the Current Opinion *"Sports Medicine an
 ```bash
 git clone https://github.com/drmarcocardinale-hub/wwc27-medagent.git && cd wwc27-medagent
 pip install -e ".[test]"
-pytest -q                          # 98 tests: source values, computations, refusal, MCP registration, version reporting, site/agent parity, benchmark integrity
+pytest -q                          # 127 tests: source values, computations, refusal, MCP registration, version reporting, site/agent parity, benchmark integrity
 python benchmark/run_tool_check.py # tool-layer benchmark check
+python scripts/check_deployed.py   # end-to-end check against the live service (see below)
 ```
+
+`pytest` exercises the chat's tool-calling loop against a stub, which cannot reproduce how the
+real model API behaves. Every fault that has reached a reader lived in exactly that gap. So after
+any deploy, run `scripts/check_deployed.py`: it asks the deployed agent real questions and checks
+that tools were called, that the answer cites them, and that it still refuses what it does not
+cover. It needs no API key, spends a few of the instance's free questions, and exits non-zero on
+failure. `--quick` skips the questions and checks only health, metadata and `/mcp`.
 
 ## Where to use it
 

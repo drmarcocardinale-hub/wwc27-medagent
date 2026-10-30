@@ -37,6 +37,25 @@ REGION=southamerica-east1 ./deploy/cloudrun/deploy.sh   # São Paulo, nearest th
 
 ## Check it worked
 
+The one to run after every deploy, from the repository root:
+
+```bash
+python3 scripts/check_deployed.py
+```
+
+It checks the service is up, that `/mcp` still answers and registers all nine tools, and then
+asks the deployed agent three real questions — a single-tool one, the multi-city plan that has
+broken in four different ways, and one it should refuse. It needs no API key, spends a few of the
+instance's free questions, and exits non-zero on failure, so CI can run it too. Use `--quick` to
+skip the questions.
+
+This matters more than it looks. `pytest` runs the tool-calling loop against a stub, and the
+stub cannot reproduce the real API: it does not attach a `thoughtSignature`, does not raise the
+bare `TimeoutError` urllib raises, and does not take long enough to expose a timing budget. Every
+fault that has reached a reader lived in that gap, and this script is what closes it.
+
+### The low-level check
+
 ```bash
 URL=$(gcloud run services describe wwc27-medagent --region europe-west1 --format 'value(status.url)')
 
