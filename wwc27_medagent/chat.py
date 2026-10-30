@@ -61,7 +61,14 @@ GLOBAL_PER_DAY = int(os.environ.get("CHAT_GLOBAL_PER_DAY", "150"))
 MAX_TOOL_CALLS = int(os.environ.get("CHAT_MAX_TOOL_CALLS", "12"))
 MAX_HISTORY = int(os.environ.get("CHAT_MAX_HISTORY", "12"))
 MAX_CHARS = int(os.environ.get("CHAT_MAX_CHARS", "1200"))
-TIMEOUT_S = float(os.environ.get("CHAT_TIMEOUT_S", "60"))
+TIMEOUT_S = float(os.environ.get("CHAT_TIMEOUT_S", "90"))
+
+# A ceiling for the whole answer, not just one call. Cloud Run cuts the request off at 300s and
+# shows its own error page, which is worse than anything this code can say; staying under that
+# with room for a closing turn means the reader gets the work that did finish. Raise it only
+# alongside the service's --timeout.
+DEADLINE_S = float(os.environ.get("CHAT_DEADLINE_S", "200"))
+WRAP_UP_TIMEOUT_S = float(os.environ.get("CHAT_WRAP_UP_TIMEOUT_S", "45"))
 
 # Transient failures worth absorbing rather than showing. "This model is currently experiencing
 # high demand" is the common one and usually clears in seconds, but a reader does not retry: they
@@ -89,6 +96,10 @@ SYSTEM = (
 
 LIMIT_HIT = ("That question needed more tool calls than the limit allows. "
              "Try asking for one city or one topic at a time.")
+
+SLOW_PARTIAL = ("That question took longer than the time allowed, and the agent stopped before "
+                "it could finish. The tools it did reach are listed below. Asking about one "
+                "city, or one topic, at a time will answer quickly.")
 
 _quota: dict[str, tuple[str, int]] = {}      # caller -> (yyyy-mm-dd, questions used)
 _spent: tuple[str, int] = ("", 0)            # (yyyy-mm-dd, questions answered off the house key)
@@ -165,13 +176,14 @@ async def run_tool(name: str, args: dict) -> str:
 
 # --------------------------------------------------------------------------- the model call
 
-def _post(url: str, payload: dict, key: str) -> dict:
+def _post(url: str, payload: dict, key: str, timeout: float | None = None) -> dict:
+    timeout = TIMEOUT_S if timeout is None else timeout
     body = json.dumps(payload).encode()
     req = urllib.request.Request(
         url, data=body, method="POST",
         headers={"Content-Type": "application/json", "x-goog-api-key": key})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as exc:                      # surface Google's own message
         detail = exc.read().decode(errors="replace")[:600]
@@ -181,14 +193,14 @@ def _post(url: str, payload: dict, key: str) -> dict:
         # wrapping it in URLError, so it slipped past the handler below and reached the page as
         # the words "The agent failed: TimeoutError".
         raise ChatError(
-            f"The model took more than {TIMEOUT_S:.0f} seconds and the request was cut off. "
+            f"The model took more than {timeout:.0f} seconds and the request was cut off. "
             "A question spanning several cities or topics takes longer; try asking about one at "
             "a time.", status=504, retryable=False) from None
     except urllib.error.URLError as exc:
         reason = exc.reason
         if isinstance(reason, TimeoutError):          # connect timeouts arrive wrapped
             raise ChatError(
-                f"The model API did not respond within {TIMEOUT_S:.0f} seconds.",
+                f"The model API did not respond within {timeout:.0f} seconds.",
                 status=504, retryable=False) from None
         raise ChatError(f"Could not reach the model API: {reason}", status=502) from None
     except ValueError as exc:                          # includes JSONDecodeError
@@ -248,7 +260,8 @@ class ChatError(Exception):
         self.retryable = (status in RETRY_ON) if retryable is None else retryable
 
 
-async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
+async def _generate(contents: list[dict], tools: list[dict] | None, key: str,
+                    timeout: float | None = None) -> dict:
     payload = {
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
@@ -262,7 +275,7 @@ async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
     for attempt in range(RETRIES + 1):
         try:
             # urllib blocks, and this runs inside the event loop that also serves /mcp.
-            return await anyio.to_thread.run_sync(lambda: _post(url, payload, key))
+            return await anyio.to_thread.run_sync(lambda: _post(url, payload, key, timeout))
         except ChatError as exc:
             if not exc.retryable or attempt == RETRIES:
                 raise
@@ -278,16 +291,19 @@ NO_MORE_TOOLS = (
     "part of the question you could not cover, so the reader can ask about it separately.")
 
 
-async def _wrap_up(contents: list[dict], key: str, trace: list[dict]) -> dict:
+async def _wrap_up(contents: list[dict], key: str, trace: list[dict],
+                   fallback: str = LIMIT_HIT) -> dict:
     """One last turn with no tools offered, so the work already done still yields an answer."""
     closing = contents + [{"role": "user", "parts": [{"text": NO_MORE_TOOLS}]}]
     try:
-        data = await _generate(closing, None, key)
+        # Bounded separately: this runs when time is already short, and it is the last thing
+        # standing between the reader and Cloud Run's error page.
+        data = await _generate(closing, None, key, timeout=WRAP_UP_TIMEOUT_S)
         parts = ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
         text = "".join(p.get("text", "") for p in parts).strip()
     except ChatError:
-        text = ""                                    # the budget message is better than an error
-    return {"answer": text or LIMIT_HIT, "tools": trace}
+        text = ""                                    # a plain message beats a raised error here
+    return {"answer": text or fallback, "tools": trace}
 
 
 async def answer(history: list[dict], key: str) -> dict:
@@ -296,9 +312,26 @@ async def answer(history: list[dict], key: str) -> dict:
     contents = [{"role": h["role"], "parts": [{"text": h["text"][:MAX_CHARS]}]}
                 for h in history[-MAX_HISTORY:]]
     trace: list[dict] = []
+    started = time.monotonic()
 
     for _ in range(MAX_TOOL_CALLS + 1):
-        data = await _generate(contents, tools, key)
+        # Stop starting new work once the answer as a whole is running out of time. Only once
+        # something has been gathered: with an empty trace there is nothing to wrap up, and the
+        # error is the honest reply.
+        left = DEADLINE_S - (time.monotonic() - started)
+        if trace and left <= 0:
+            return await _wrap_up(contents, key, trace, fallback=SLOW_PARTIAL)
+        try:
+            # Never let one call run past the deadline: without this, a call starting just
+            # inside it could run its full timeout and the closing turn another, overshooting
+            # the request limit Cloud Run enforces and replacing any answer with its error page.
+            data = await _generate(contents, tools, key, timeout=max(1.0, min(TIMEOUT_S, left)))
+        except ChatError as exc:
+            # A call that timed out or failed transiently, with results already in hand, should
+            # still produce an answer from those rather than discarding them.
+            if trace and exc.status in (502, 503, 504):
+                return await _wrap_up(contents, key, trace, fallback=SLOW_PARTIAL)
+            raise
         candidates = data.get("candidates") or []
         if not candidates:
             blocked = (data.get("promptFeedback") or {}).get("blockReason")

@@ -267,6 +267,62 @@ def test_a_call_without_a_signature_still_works(stub):
     assert out["answer"] == "ok"
 
 
+def test_no_single_call_may_outlive_the_deadline(monkeypatch):
+    """A call starting just inside the deadline must not be allowed its full timeout, or the
+    request overshoots the limit Cloud Run enforces and the reader gets its error page."""
+    seen = []
+
+    def _record(url, payload, key, timeout=None):
+        seen.append(timeout)
+        return {"candidates": [{"content": {"parts": [{"text": "ok"}]}}]}
+
+    monkeypatch.setattr(chat, "_post", _record)
+    monkeypatch.setattr(chat, "TIMEOUT_S", 90)
+    monkeypatch.setattr(chat, "DEADLINE_S", 10)
+
+    asyncio.run(chat.answer([{"role": "user", "text": "hi"}], "k"))
+    assert seen and seen[0] <= 10, f"call was given {seen[0]}s of a 10s budget"
+
+
+def test_the_whole_answer_cannot_outlast_cloud_runs_request_limit():
+    """The numbers have to add up, not just look reasonable."""
+    worst = chat.DEADLINE_S + chat.WRAP_UP_TIMEOUT_S
+    assert worst < 300, f"worst case {worst}s exceeds the 300s Cloud Run --timeout"
+
+
+def test_the_overall_deadline_answers_from_what_was_gathered(stub, monkeypatch):
+    """Cloud Run cuts the request off at 300s and shows its own error page. The agent has to
+    stop first and say something useful."""
+    monkeypatch.setattr(chat, "DEADLINE_S", 0)             # as if the budget were already spent
+    stub([_call("tournament_facts", {}), _text("Fortaleza runs hot; I ran out of time for Recife.")])
+
+    out = asyncio.run(chat.answer([{"role": "user", "text": "draft our plan"}], "k"))
+
+    assert "ran out of time" in out["answer"]
+    assert len(out["tools"]) == 1, "the completed tool call was discarded"
+    assert "tools" not in _Stub.seen[-1], "the closing turn still offered tools"
+
+
+def test_results_are_not_thrown_away_when_a_later_call_fails(stub, monkeypatch):
+    """One tool succeeded, the next model call kept failing: answer from the first rather than
+    losing it."""
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    stub([_call("tournament_facts", {}), _err(503, "This model is currently experiencing high demand.")])
+
+    out = asyncio.run(chat.answer([{"role": "user", "text": "draft our plan"}], "k"))
+
+    assert "took longer than the time allowed" in out["answer"]
+    assert len(out["tools"]) == 1, "the completed tool call was discarded"
+
+
+def test_a_failure_with_nothing_gathered_still_raises(stub, monkeypatch):
+    """With an empty trace there is nothing to wrap up, so the error is the honest reply."""
+    monkeypatch.setattr(chat, "RETRY_BACKOFF_S", 0.01)
+    stub([_err(503, "This model is currently experiencing high demand.")])
+    with pytest.raises(chat.ChatError):
+        asyncio.run(chat.answer([{"role": "user", "text": "hello"}], "k"))
+
+
 def _batch(*names):
     """One model turn asking for several tools at once, as it does for a multi-city plan."""
     parts = [{"functionCall": {"name": n, "args": {}}} for n in names]
