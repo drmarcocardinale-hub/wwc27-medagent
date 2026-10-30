@@ -77,21 +77,19 @@ def call(url, path, payload=None, timeout=60):
 
 # --------------------------------------------------------------------------- the checks
 
-def check_health(url):
-    code, body = call(url, "/healthz", timeout=90)   # first hit may wait for a cold start
-    if code == 200:
-        record(PASS, "service is up")
-        return True
-    record(FAIL, "service is up", "got %s: %s" % (code, body))
-    return False
-
-
 def check_meta(url):
-    code, body = call(url, "/api/meta")
+    """Liveness and configuration in one call.
+
+    /api/meta rather than /healthz: a health route returning a constant says only that something
+    is listening, while this reports the version, the model and whether a shared key is present -
+    which is what actually has to be right. (/healthz also turned out to 404 at Google's edge on
+    the run.app domain without reaching the container at all, so it was never a reliable probe.)
+    """
+    code, body = call(url, "/api/meta", timeout=90)  # first hit may wait for a cold start
     if code != 200 or not isinstance(body, dict):
-        record(FAIL, "metadata", "got %s: %s" % (code, body))
+        record(FAIL, "service is up", "GET /api/meta gave %s: %s" % (code, str(body)[:200]))
         return None
-    record(PASS, "metadata", "version %s, model %s, shared key %s"
+    record(PASS, "service is up", "version %s, model %s, shared key %s"
            % (body.get("version"), body.get("model"), body.get("house_key")))
     if not body.get("house_key"):
         record(SKIP, "shared key present",
@@ -190,11 +188,15 @@ def main():
     url = args.url.rstrip("/")
 
     print("Checking %s\n" % url)
-    if not check_health(url):
-        print("\nThe service did not respond; nothing else can be checked.")
+    meta = check_meta(url)
+    mcp_ok = check_mcp(url)
+
+    # Only give up when nothing answered at all. An earlier version aborted on a single failed
+    # probe and announced the service was down while it was plainly serving every other path; a
+    # false alarm is the quickest way to make a check like this stop being trusted.
+    if meta is None and not mcp_ok:
+        print("\nNothing answered at %s - wrong URL, or the service is down." % url)
         return 1
-    check_meta(url)
-    check_mcp(url)
 
     if not args.quick:
         print("")
