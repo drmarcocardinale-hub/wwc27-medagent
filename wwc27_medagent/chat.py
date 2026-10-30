@@ -172,8 +172,24 @@ def _post(url: str, payload: dict, key: str) -> dict:
     except urllib.error.HTTPError as exc:                      # surface Google's own message
         detail = exc.read().decode(errors="replace")[:600]
         raise ChatError(_explain(exc.code, detail), status=exc.code) from None
+    except TimeoutError as exc:
+        # socket.timeout IS TimeoutError on 3.10+, and urlopen raises it bare rather than
+        # wrapping it in URLError, so it slipped past the handler below and reached the page as
+        # the words "The agent failed: TimeoutError".
+        raise ChatError(
+            f"The model took more than {TIMEOUT_S:.0f} seconds and the request was cut off. "
+            "A question spanning several cities or topics takes longer; try asking about one at "
+            "a time.", status=504, retryable=False) from None
     except urllib.error.URLError as exc:
-        raise ChatError(f"Could not reach the model API: {exc.reason}", status=502) from None
+        reason = exc.reason
+        if isinstance(reason, TimeoutError):          # connect timeouts arrive wrapped
+            raise ChatError(
+                f"The model API did not respond within {TIMEOUT_S:.0f} seconds.",
+                status=504, retryable=False) from None
+        raise ChatError(f"Could not reach the model API: {reason}", status=502) from None
+    except ValueError as exc:                          # includes JSONDecodeError
+        raise ChatError(f"The model API sent a reply this agent could not read: {exc}",
+                        status=502) from None
 
 
 def _reason(detail: str) -> tuple[str, str]:
@@ -219,9 +235,13 @@ def _explain(code: int, detail: str) -> str:
 
 
 class ChatError(Exception):
-    def __init__(self, message: str, status: int = 400):
+    def __init__(self, message: str, status: int = 400, retryable: bool | None = None):
         super().__init__(message)
         self.status = status
+        # Status alone is not enough to decide. A timeout is reported as 504, which is normally
+        # worth retrying, but it has already spent the full timeout waiting - trying twice more
+        # would leave someone staring at a blank page for three minutes to reach the same end.
+        self.retryable = (status in RETRY_ON) if retryable is None else retryable
 
 
 async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
@@ -237,7 +257,7 @@ async def _generate(contents: list[dict], tools: list[dict], key: str) -> dict:
             # urllib blocks, and this runs inside the event loop that also serves /mcp.
             return await anyio.to_thread.run_sync(lambda: _post(url, payload, key))
         except ChatError as exc:
-            if exc.status not in RETRY_ON or attempt == RETRIES:
+            if not exc.retryable or attempt == RETRIES:
                 raise
             # Back off a little between tries: an overloaded model is not helped by being asked
             # again immediately, and the whole budget here is under three seconds.

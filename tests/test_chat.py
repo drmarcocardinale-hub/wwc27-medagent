@@ -267,6 +267,27 @@ def test_a_call_without_a_signature_still_works(stub):
     assert out["answer"] == "ok"
 
 
+def test_a_read_timeout_becomes_a_readable_message_not_an_exception_name(monkeypatch):
+    """urlopen raises a bare TimeoutError on 3.10+, which used to escape as 'The agent failed:
+    TimeoutError.' - an exception class name shown to a clinician."""
+    def _boom(*a, **k):
+        raise TimeoutError("timed out")
+    monkeypatch.setattr(chat.urllib.request, "urlopen", _boom)
+
+    with pytest.raises(chat.ChatError) as got:
+        chat._post("http://example.invalid", {}, "k")
+    assert "took more than" in str(got.value)
+    assert "TimeoutError" not in str(got.value)
+    assert got.value.status == 504
+    assert got.value.retryable is False, "a timeout must not be retried; it already waited"
+
+
+def test_a_504_from_the_gateway_is_still_retryable():
+    """Only the timeout opts out - a real gateway 504 is worth another go."""
+    assert chat.ChatError("gateway", status=504).retryable is True
+    assert chat.ChatError("bad key", status=400).retryable is False
+
+
 # --------------------------------------------------------------------------- retrying
 
 def _err(status, message, reason=None):
