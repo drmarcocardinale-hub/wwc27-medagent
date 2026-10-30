@@ -30,6 +30,9 @@ REPO = "https://github.com/drmarcocardinale-hub/wwc27-medagent"
 CONCEPT_DOI = "10.5281/zenodo.22832165"
 # Set once the Cloud Run service is live (deploy/cloudrun/), then rebuild the site.
 HOSTED_MCP_URL = "https://wwc27-medagent-919325462297.europe-west1.run.app/mcp"
+# The same service serves a browser chat at its root. Derived rather than written out twice, so
+# moving the service cannot leave the page advertising two different hosts.
+HOSTED_CHAT_URL = HOSTED_MCP_URL[:-4] if HOSTED_MCP_URL.endswith("/mcp") else ""
 
 # Brazil's border from Natural Earth 1:50m (naturalearthdata.com), which is public domain and
 # asks for no attribution; the figure credits it anyway. Simplified with Douglas-Peucker to a
@@ -46,8 +49,22 @@ BRAZIL = {
     "height": 1049.7
 }
 
+CHAT_CARD = """    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Ask it in your browser
+        <span class="tag">nothing to install</span></h3>
+      <p style="font-size:.9rem;margin:0 0 10px">Type a question and the agent answers from the
+      same tables this page shows, naming the tool it used and linking the source. No account, no
+      client to configure, eight questions a day.</p>
+      <p style="margin:0 0 10px"><a href="{chat}" style="font-weight:600">Open the chat &rarr;</a></p>
+      <p style="font-size:.82rem;color:var(--muted);margin:0">Every answer is produced by calling
+      the same tools as Option 2, so the two cannot disagree. Questions are sent to the hosted
+      service and on to a commercial model API; nothing is written to disk there, but
+      <strong>do not type patient or player detail into it</strong>. Where that matters, use
+      Option 2 or 3 and keep the whole exchange inside your own environment.</p>
+    </div>"""
+
 OPTION1_LIVE = """    <div class="card">
-      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint (nothing to install)</h3>
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 2 &middot; Connect your own assistant</h3>
       <p style="font-size:.9rem;margin:0 0 8px">Paste this URL into your assistant's connector
       settings:</p>
       <p><code style="font-family:var(--mono);font-size:.85rem">{url}</code></p>
@@ -61,10 +78,10 @@ OPTION1_LIVE = """    <div class="card">
     </div>"""
 
 OPTION1_PENDING = """    <div class="card">
-      <h3 style="margin:0 0 6px;font-size:1rem">Option 1 &middot; Hosted endpoint
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 2 &middot; Connect your own assistant
         <span class="tag warn">not yet available</span></h3>
       <p style="font-size:.9rem;margin:0">A hosted version, which would need nothing installed, is
-      not running yet. Until it is, use Option 2 below. This page will show the address here once
+      not running yet. Until it is, use Option 3 below. This page will show the address here once
       it is live.</p>
     </div>"""
 
@@ -85,7 +102,7 @@ OTHER_CLIENTS = """    <div class="card">
     "url": "__URL__"
 } } }</code></pre>
       <p style="font-size:.85rem;margin:10px 0 0">If your client only supports local servers, install
-      it as in Option 2 and point the client at the <code style="font-family:var(--mono)">command</code>
+      it as in Option 3 and point the client at the <code style="font-family:var(--mono)">command</code>
       form instead &mdash; that works with any MCP client, not only Claude.</p>
     </div>
 
@@ -426,21 +443,24 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
 
   <section id="use" hidden>
     <h2>Asking it questions</h2>
-    <p class="lede">This page is the reference tables. The question-and-answer part runs inside
-    your own AI assistant: you connect it to the agent once, then ask in plain language and it
-    answers from these same tables, with the source for each claim.</p>
+    <p class="lede">This page is the reference tables. To ask questions of them in plain language,
+    and get the source for each claim, take whichever route below suits you &mdash; they are
+    ordered by how much you have to set up, which is nothing at all for the first.</p>
 
-    <div class="note"><strong>There is no chat box on this page, by design.</strong> A static page
-    cannot run a language model, and hosting one openly would mean paying per question and
-    accepting whatever is typed into it. Connecting your own assistant keeps your questions —
-    and any patient or player detail — inside your own environment.</div>
+    <div class="note"><strong>Why the chat is not on this page itself.</strong> This page is
+    static, served from a file; it cannot run a language model. The chat is a separate hosted
+    service, which is also why it can be rationed and why its privacy terms differ: what you type
+    there leaves your machine, whereas Options 2 and 3 keep the exchange inside your own
+    environment. For anything touching an identifiable player, use those.</div>
+
+__CHATCARD__
 
 __OPTION1__
 
 __OTHERCLIENTS__
 
     <div class="card">
-      <h3 style="margin:0 0 6px;font-size:1rem">Option 2 &middot; Run it on your own machine</h3>
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 3 &middot; Run it on your own machine</h3>
       <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px">Needs Python 3.10 or newer.
       Keeps everything local.</p>
       <pre style="font-family:var(--mono);font-size:.82rem;overflow-x:auto;background:var(--bg);
@@ -456,7 +476,7 @@ pip install -e .</code></pre>
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 6px;font-size:1rem">Option 3 &middot; No AI assistant</h3>
+      <h3 style="margin:0 0 6px;font-size:1rem">Option 4 &middot; No AI assistant</h3>
       <p style="font-size:.9rem;margin:0">Use the tabs on this page. Everything the agent answers
       from is here: the host-city table, the screening matrix, the evidence base and the
       references. The agent adds convenience and plain-language answers, not extra content.</p>
@@ -1096,7 +1116,12 @@ def main() -> int:
         json.dumps(heat_grid(), ensure_ascii=False) + "\n", encoding="utf-8")
     option1 = OPTION1_LIVE.format(url=HOSTED_MCP_URL) if HOSTED_MCP_URL else OPTION1_PENDING
     other = OTHER_CLIENTS.replace("__URL__", HOSTED_MCP_URL or "(hosted endpoint not configured)")
-    html = (HTML.replace("__OPTION1__", option1)
+    # No hosted service means no browser chat to link to; drop the card rather than ship a dead
+    # link. The surviving cards then start at "Option 2", which is untidy but only reachable in
+    # the state where Option 2 itself renders as "not yet available" and explains the gap.
+    chat_card = CHAT_CARD.format(chat=HOSTED_CHAT_URL) if HOSTED_CHAT_URL else ""
+    html = (HTML.replace("__CHATCARD__", chat_card)
+                .replace("__OPTION1__", option1)
                 .replace("__OTHERCLIENTS__", other)
                 .replace("__REPO__", REPO)
                 .replace("__DOI__", CONCEPT_DOI)
