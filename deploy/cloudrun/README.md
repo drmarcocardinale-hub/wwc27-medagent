@@ -34,6 +34,7 @@ REGION=southamerica-east1 ./deploy/cloudrun/deploy.sh   # São Paulo, nearest th
 | `--memory 512Mi` | The server holds a few JSON files; it does not need more. |
 | `--update-env-vars`, **not** `--set-env-vars` | `--set` replaces the whole environment block, so a `GEMINI_API_KEY` set on the service by hand would be silently wiped by the next push and the chat would quietly start asking every visitor for their own key. `--update` merges. |
 | `CHAT_FREE_PER_DAY=8`, `CHAT_GLOBAL_PER_DAY=150` | The chat's two rationing layers. See below. |
+| `MCP_ALLOWED_HOSTS` (optional) | The MCP SDK enables DNS-rebinding protection and allows only localhost, so a hosted `/mcp` answers **421 Invalid Host header** to every client while a local probe still passes — which is exactly how it reached production unnoticed. Set this to the service's own hostname (comma separated; `name:*` allows any port) to keep the check on. Left unset, the check is turned off, which is defensible for this server — public, unauthenticated, read-only, no personal data, so rebinding gains an attacker nothing `curl` would not — and **not** defensible for one with private data or side effects. |
 
 ## Check it worked
 

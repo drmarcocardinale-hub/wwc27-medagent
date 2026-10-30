@@ -335,18 +335,47 @@ async def api_chat(request: Request) -> JSONResponse:
     return JSONResponse(result)
 
 
+def transport_security():
+    """Host allowlist for the MCP endpoint, or None when the SDK has no such setting.
+
+    The SDK enables DNS-rebinding protection and allows only localhost, so a hosted deployment
+    answers 421 "Invalid Host header" to every client while still passing a local probe. That is
+    how it reached production unnoticed: the endpoint cited in the paper was refusing everyone.
+
+    MCP_ALLOWED_HOSTS (comma separated, "name:*" allows any port) is the right answer where the
+    hostname is known - set it to the service's own host. Without it the check is turned off,
+    which is defensible for THIS server and not in general: rebinding attacks exist to reach a
+    server the attacker cannot address directly, and this one is public, unauthenticated,
+    read-only and holds no personal data, so it offers an attacker nothing that curl would not.
+    A server with private data or side effects should set the variable instead.
+    """
+    try:
+        from mcp.server.transport_security import TransportSecuritySettings
+    except ImportError:                               # older SDK: no host checking at all
+        return None
+    allowed = [h.strip() for h in os.environ.get("MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
+    if allowed:
+        return TransportSecuritySettings(enable_dns_rebinding_protection=True,
+                                         allowed_hosts=allowed, allowed_origins=allowed)
+    return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+
 def build_app():
     """Chat routes first, the MCP app mounted behind them so /mcp keeps its path."""
     from .server import mcp
     stateless = os.environ.get("MCP_STATELESS", "").lower() in ("1", "true", "yes")
+    security = transport_security()
     try:
-        mcp_app = mcp.streamable_http_app(stateless_http=stateless)
-    except TypeError:                                 # mcp 1.x takes it off .settings instead
+        mcp_app = mcp.streamable_http_app(stateless_http=stateless, transport_security=security)
+    except TypeError:                                 # older SDKs take neither, or only one
         try:
-            mcp.settings.stateless_http = stateless
-        except Exception:
-            pass
-        mcp_app = mcp.streamable_http_app()
+            mcp_app = mcp.streamable_http_app(stateless_http=stateless)
+        except TypeError:                             # mcp 1.x takes it off .settings instead
+            try:
+                mcp.settings.stateless_http = stateless
+            except Exception:
+                pass
+            mcp_app = mcp.streamable_http_app()
 
     routes = [
         Route("/", page),

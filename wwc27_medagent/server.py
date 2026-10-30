@@ -217,9 +217,17 @@ def main() -> None:
         # mode makes every request self-contained, at the cost of server-initiated messages,
         # which this read-only server does not use. Set MCP_STATELESS=1 there.
         stateless = os.environ.get("MCP_STATELESS", "").lower() in ("1", "true", "yes")
+        # The SDK allows only localhost by default and answers 421 to everyone else, so a hosted
+        # server refuses every client while still passing a local probe. See web.transport_security.
+        from .web import transport_security
+        security = transport_security()
         if MCP_MAJOR >= 2:            # host/port are run() kwargs in mcp 2.x
-            mcp.run(transport="streamable-http", host=host, port=port,
-                    stateless_http=stateless)
+            try:
+                mcp.run(transport="streamable-http", host=host, port=port,
+                        stateless_http=stateless, transport_security=security)
+            except TypeError:         # SDK without the setting
+                mcp.run(transport="streamable-http", host=host, port=port,
+                        stateless_http=stateless)
         else:                         # ...and live on .settings in mcp 1.x
             mcp.settings.host = host
             mcp.settings.port = port
