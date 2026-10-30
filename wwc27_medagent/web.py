@@ -76,6 +76,11 @@ button{font:inherit;font-weight:600;padding:12px 18px;border:1px solid var(--lin
 button:hover:not(:disabled){border-color:var(--accent)}
 button:disabled{opacity:.55;cursor:default}
 .status{font-size:.8rem;color:var(--muted);margin:10px 0 0;min-height:1.2em}
+.hint{font-size:.8rem;color:var(--muted);margin:4px 0 0}
+/* A button, not a link: it opens a panel on this page rather than going anywhere, and a link
+   with href="#" would offer the keyboard and screen-reader user a destination that does not exist. */
+.linkish{background:none;border:0;padding:0;font:inherit;color:var(--accent);
+  text-decoration:underline;cursor:pointer}
 .examples{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px}
 .examples button{font-size:.8rem;font-weight:400;padding:6px 11px;border-radius:999px;
   background:var(--surface);color:var(--ink-2)}
@@ -117,12 +122,19 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;paddi
     <button type="submit" id="send">Ask</button>
   </form>
   <p class="status" id="status"></p>
+  <p class="hint" id="morehint" hidden>Want more than that?
+    <button type="button" class="linkish" id="showkey">Use your own free Gemini key</button></p>
   <div id="keybox">
-    <strong style="font-size:.92rem">Out of free questions for today</strong>
-    <p style="font-size:.85rem;color:var(--muted);margin:6px 0 0">Carry on with your own Gemini
-    API key from <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>. It
-    is held in this browser tab for this session only, sent with each question and never stored
-    on the server.</p>
+    <strong style="font-size:.92rem" id="keytitle">Use your own key</strong>
+    <p style="font-size:.85rem;color:var(--muted);margin:6px 0 0">Three steps, and it costs
+    nothing: open <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a>,
+    sign in with a Google account, then choose <em>Create API key</em>. Google's free tier needs
+    no billing account and no card &mdash; if you go past its limits it simply stops answering
+    for a while rather than charging you.</p>
+    <p style="font-size:.85rem;color:var(--muted);margin:8px 0 0">Paste it below. It is held in
+    this browser tab for this session only, sent with each question and never stored on the
+    server. Questions asked on your own key are not rationed here; Google's own free limits
+    apply instead.</p>
     <input type="password" id="key" placeholder="AIza&hellip;" autocomplete="off" spellcheck="false">
     <button type="button" id="savekey">Use this key</button>
   </div>
@@ -181,7 +193,14 @@ async function ask(text){
     });
     const data = await r.json();
     if (!r.ok){
-      if (data.need_key){ keybox.classList.add("show"); }
+      if (data.need_key){
+        // 429 means a ceiling was reached; 402 means there is no shared key at all. The error
+        // text already says which, so the heading only needs to stop promising free questions.
+        document.getElementById("keytitle").textContent =
+          r.status === 429 ? "Out of free questions for today" : "A key is needed to ask";
+        document.getElementById("morehint").hidden = true;
+        keybox.classList.add("show");
+      }
       statusEl.textContent = "";
       bubble("bot", "<p>" + esc(data.error || "Something went wrong.") + "</p>");
     } else {
@@ -207,7 +226,18 @@ q.addEventListener("keydown", e => {
 });
 document.getElementById("savekey").addEventListener("click", () => {
   userKey = document.getElementById("key").value.trim();
-  if (userKey){ keybox.classList.remove("show"); statusEl.textContent = "Using your own key."; }
+  if (userKey){
+    keybox.classList.remove("show");
+    document.getElementById("morehint").hidden = true;
+    statusEl.textContent = "Using your own key.";
+  }
+});
+
+// Opened deliberately rather than by running out, so the panel must not claim they are out.
+document.getElementById("showkey").addEventListener("click", () => {
+  document.getElementById("keytitle").textContent = "Use your own key";
+  keybox.classList.add("show");
+  document.getElementById("key").focus();
 });
 
 const EXAMPLES = [
@@ -227,6 +257,7 @@ fetch("api/meta").then(r => r.json()).then(m => {
     statusEl.textContent = "This instance has no shared key, so bring your own to ask anything.";
   } else {
     statusEl.textContent = m.free_per_day + " free questions a day, then your own key.";
+    document.getElementById("morehint").hidden = false;
   }
 }).catch(() => {});
 </script>
