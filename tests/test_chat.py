@@ -115,9 +115,12 @@ def _text(t):
     return {"candidates": [{"content": {"parts": [{"text": t}]}}]}
 
 
-def _call(name, args):
-    return {"candidates": [{"content": {"parts": [{"functionCall": {"name": name,
-                                                                    "args": args}}]}}]}
+def _call(name, args, sig=None):
+    """A function call, optionally carrying the thoughtSignature a thinking model attaches."""
+    part = {"functionCall": {"name": name, "args": args}}
+    if sig:
+        part["thoughtSignature"] = sig
+    return {"candidates": [{"content": {"role": "model", "parts": [part]}}]}
 
 
 @pytest.fixture
@@ -236,6 +239,32 @@ def test_explain_survives_a_body_that_is_not_json():
     assert "server error" in chat._explain(502, "<html>gateway</html>")
     assert chat._reason("<html>gateway</html>") == ("", "")
     assert "404" in chat._explain(404, ""), "an unmapped code should still name itself"
+
+
+def test_a_thought_signature_travels_back_with_the_call(stub):
+    """gemini-flash-latest is a thinking model: it attaches a thoughtSignature to each
+    functionCall part, and the API rejects the next turn with 400 if it does not come back.
+
+    Rebuilding the model turn as {"functionCall": c} kept the call and dropped the signature,
+    which is what broke the deployed agent. Echoing the received part back fixes it.
+    """
+    stub([_call("tournament_facts", {}, sig="SIG-abc123"), _text("24 June to 25 July 2027.")])
+    out = asyncio.run(chat.answer([{"role": "user", "text": "When is it?"}], "k"))
+    assert out["answer"] == "24 June to 25 July 2027."
+
+    sent_back = _Stub.seen[1]["contents"]
+    model_turns = [c for c in sent_back if c.get("role") == "model"]
+    assert model_turns, "the model's own turn was never sent back"
+    blob = json.dumps(model_turns)
+    assert "SIG-abc123" in blob, "the thoughtSignature was dropped from the model turn"
+    assert "tournament_facts" in blob, "the call itself was lost"
+
+
+def test_a_call_without_a_signature_still_works(stub):
+    """Not every model attaches one; its absence must not break the turn."""
+    stub([_call("tournament_facts", {}), _text("ok")])
+    out = asyncio.run(chat.answer([{"role": "user", "text": "When?"}], "k"))
+    assert out["answer"] == "ok"
 
 
 # --------------------------------------------------------------------------- retrying

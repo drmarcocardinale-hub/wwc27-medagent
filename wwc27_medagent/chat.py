@@ -260,7 +260,10 @@ async def answer(history: list[dict], key: str) -> dict:
             raise ChatError("The model returned nothing"
                             + (f" ({blocked})." if blocked else "."), status=502)
         parts = (candidates[0].get("content") or {}).get("parts") or []
-        calls = [p["functionCall"] for p in parts if "functionCall" in p]
+        # Keep the whole part, not just the call inside it: the sibling thoughtSignature has to
+        # travel back with it (see where the model turn is appended below).
+        call_parts = [p for p in parts if "functionCall" in p]
+        calls = [p["functionCall"] for p in call_parts]
 
         if not calls:
             text = "".join(p.get("text", "") for p in parts).strip()
@@ -273,7 +276,17 @@ async def answer(history: list[dict], key: str) -> dict:
         if len(trace) + len(calls) > MAX_TOOL_CALLS:
             return {"answer": LIMIT_HIT, "tools": trace}
 
-        contents.append({"role": "model", "parts": [{"functionCall": c} for c in calls]})
+        # Echo the model's own turn back verbatim rather than rebuilding it from the calls.
+        #
+        # Thinking models attach a thoughtSignature alongside each functionCall, and the API
+        # requires it to come back with the turn; reconstructing a part as {"functionCall": c}
+        # keeps the call and silently drops its signature, which the API rejects with a 400.
+        # Copying what was received also carries any future sibling field for free, which is the
+        # whole reason the old version broke: it only kept the one key it knew about.
+        model_turn = dict(candidates[0].get("content") or {})
+        model_turn["role"] = "model"
+        model_turn["parts"] = call_parts
+        contents.append(model_turn)
         responses = []
         for call in calls:
             name, args = call.get("name", ""), call.get("args") or {}
