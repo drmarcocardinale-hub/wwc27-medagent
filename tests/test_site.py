@@ -46,3 +46,49 @@ def test_venue_table_bands_come_from_core():
         for month in ("june", "july"):
             m = row[month]
             assert m["band"] == core.heat_band(m["swbgt_at_daily_max"])["band"]
+
+
+# --------------------------------------------------------------------------- the architecture figure
+
+def _arch():
+    return build_site.ARCH_FIGURE
+
+
+def test_the_figure_counts_match_what_the_server_actually_exposes():
+    """The figure states "9 tools, 7 resources, 2 prompts". Those are drawn by hand, so adding a
+    tool would leave a picture on a page cited in an article quietly telling readers a wrong
+    number. Fail here instead."""
+    import asyncio
+
+    from wwc27_medagent.server import mcp
+
+    counts = {
+        "tools": len(asyncio.run(mcp.list_tools())),
+        "resources": len(asyncio.run(mcp.list_resources())),
+        "prompts": len(asyncio.run(mcp.list_prompts())),
+    }
+    fig = _arch()
+    for label, n in counts.items():
+        assert f"{n} {label}" in fig, (
+            f"the figure does not say '{n} {label}'; the server exposes {n}")
+
+
+def test_the_figure_names_the_data_files_that_exist():
+    """Each filename in the figure must be a real file, and every data file must appear: a
+    diagram of the evidence base that omits part of it is worse than no diagram."""
+    from pathlib import Path as _P
+
+    data = {p.name for p in (ROOT / "wwc27_medagent" / "data").glob("*.json")}
+    fig = _arch()
+    named = {n for n in data if n in fig}
+    assert named == data, f"figure and data/ disagree; missing from the figure: {sorted(data - named)}"
+
+
+def test_the_figure_is_self_contained_and_accessible():
+    """Inline SVG on this page: no scripts, no external images, and a label for readers who
+    cannot see it."""
+    fig = _arch()
+    for banned in ("<script", "<foreignObject", "<image", "http://", "xlink:href"):
+        assert banned not in fig, f"the figure should not contain {banned}"
+    assert 'role="img"' in fig and 'aria-label=' in fig
+    assert "<figcaption>" in fig

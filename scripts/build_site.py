@@ -63,6 +63,148 @@ CHAT_CARD = """    <div class="card">
       Option 2 or 3 and keep the whole exchange inside your own environment.</p>
     </div>"""
 
+ARCH_FIGURE = r'''    <figure class="viz">
+      <h3>How the agent is put together</h3>
+      <p class="vsub">Five source files, one computation module, and three surfaces that all read
+      through it. The pipelines below keep that set current, archived and checked.</p>
+      <div class="vizbody" style="--vmin:900px">
+      <svg viewBox="0 0 1000 560" role="img"
+           aria-label="Architecture diagram. Five JSON data files - venues, screening, evidence,
+           references and air quality - feed a single core module that computes simplified WBGT,
+           heat bands and great-circle travel legs. Core feeds an MCP server exposing nine tools,
+           seven resources and two prompts, which serves the browser chat page and external MCP
+           clients; core also generates this reader site at build time. Below, three pipelines:
+           a twice-daily air-quality pull that writes back into the air quality data file, a push
+           that builds, deploys and then verifies the live service with three real questions, and
+           a GitHub release that is archived to Zenodo with a version DOI.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+                  orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" style="fill:currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- ================= band 1 ================= -->
+        <text x="20" y="26" style="fill:currentColor;font-size:12.5px;font-weight:700;
+          letter-spacing:.06em">WHERE EVERY ANSWER COMES FROM</text>
+        <text x="20" y="50" style="fill:var(--muted);font-size:10.5px">data/*.json &mdash; the evidence base</text>
+
+        <g style="font-size:12px">
+          <rect x="20" y="60"  width="150" height="28" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="20" y="96"  width="150" height="28" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="20" y="132" width="150" height="28" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="20" y="168" width="150" height="28" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="20" y="204" width="150" height="28" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <text x="95" y="79"  text-anchor="middle" style="fill:currentColor">venues.json</text>
+          <text x="95" y="115" text-anchor="middle" style="fill:currentColor">screening.json</text>
+          <text x="95" y="151" text-anchor="middle" style="fill:currentColor">evidence.json</text>
+          <text x="95" y="187" text-anchor="middle" style="fill:currentColor">references.json</text>
+          <text x="95" y="223" text-anchor="middle" style="fill:currentColor">air_quality.json</text>
+        </g>
+
+        <g style="stroke:var(--axis);fill:none">
+          <path d="M170,74 H186"/><path d="M170,110 H186"/><path d="M170,146 H186"/>
+          <path d="M170,182 H186"/><path d="M170,218 H186"/>
+          <path d="M186,74 V218"/>
+        </g>
+        <path d="M186,146 H214" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+
+        <rect x="220" y="110" width="130" height="76" rx="6"
+              style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.6"/>
+        <text x="285" y="136" text-anchor="middle"
+              style="fill:var(--accent);font-size:14px;font-weight:700">core</text>
+        <text x="285" y="155" text-anchor="middle" style="fill:var(--ink-2);font-size:10.5px">sWBGT &middot; heat bands</text>
+        <text x="285" y="170" text-anchor="middle" style="fill:var(--ink-2);font-size:10.5px">great-circle legs</text>
+
+        <path d="M350,148 H406" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+        <text x="378" y="141" text-anchor="middle" style="fill:var(--muted);font-size:10px">computes</text>
+
+        <rect x="410" y="84" width="180" height="124" rx="6" style="fill:var(--bg);stroke:var(--line)"/>
+        <text x="500" y="108" text-anchor="middle"
+              style="fill:currentColor;font-size:13px;font-weight:700">MCP server</text>
+        <text x="500" y="134" text-anchor="middle" style="fill:currentColor;font-size:12px">9 tools</text>
+        <text x="500" y="156" text-anchor="middle" style="fill:currentColor;font-size:12px">7 resources</text>
+        <text x="500" y="178" text-anchor="middle" style="fill:currentColor;font-size:12px">2 prompts</text>
+
+        <path d="M590,106 H712" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+        <text x="651" y="99" text-anchor="middle" style="fill:var(--muted);font-size:10px">tool calls + results</text>
+        <path d="M590,162 H712" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+        <text x="651" y="155" text-anchor="middle" style="fill:var(--muted);font-size:10px">streamable HTTP</text>
+
+        <g style="font-size:12px">
+          <rect x="720" y="84"  width="260" height="44" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="720" y="140" width="260" height="44" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="720" y="200" width="260" height="44" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <text x="850" y="104" text-anchor="middle" style="fill:currentColor;font-weight:600">Chat page</text>
+          <text x="850" y="119" text-anchor="middle" style="fill:var(--muted);font-size:10.5px">a reader with nothing installed</text>
+          <text x="850" y="160" text-anchor="middle" style="fill:currentColor;font-weight:600">MCP clients</text>
+          <text x="850" y="175" text-anchor="middle" style="fill:var(--muted);font-size:10.5px">Claude &middot; ChatGPT &middot; Copilot</text>
+          <text x="850" y="220" text-anchor="middle" style="fill:currentColor;font-weight:600">This reader site</text>
+          <text x="850" y="235" text-anchor="middle" style="fill:var(--muted);font-size:10.5px">the tables on this page</text>
+        </g>
+
+        <path d="M285,186 V262 H850 V248" style="stroke:var(--accent);fill:none;stroke-width:1.6"
+              marker-end="url(#ah)"/>
+        <text x="640" y="278" text-anchor="middle" style="fill:var(--accent);font-size:10.5px">
+          recomputed by build_site.py at build time</text>
+
+        <!-- ================= band 2 ================= -->
+        <path d="M20,312 H980" style="stroke:var(--line);fill:none"/>
+        <text x="20" y="338" style="fill:currentColor;font-size:12.5px;font-weight:700;
+          letter-spacing:.06em">WHAT KEEPS IT CURRENT</text>
+
+        <g style="font-size:11.5px">
+          <rect x="20"  y="358" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="210" y="358" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="400" y="358" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="590" y="358" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <text x="95"  y="374" text-anchor="middle" style="fill:currentColor">air-quality.yml</text>
+          <text x="95"  y="388" text-anchor="middle" style="fill:var(--muted);font-size:10px">06:10 &amp; 17:10 Brazil</text>
+          <text x="285" y="381" text-anchor="middle" style="fill:currentColor">probe 4 sources</text>
+          <text x="475" y="381" text-anchor="middle" style="fill:currentColor">airq_archive/*.jsonl</text>
+          <text x="665" y="381" text-anchor="middle" style="fill:currentColor">air_quality.json</text>
+          <path d="M170,377 H206" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+          <path d="M360,377 H396" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+          <path d="M550,377 H586" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+
+          <rect x="20"  y="418" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="210" y="418" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="400" y="418" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="590" y="418" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <text x="95"  y="441" text-anchor="middle" style="fill:currentColor">git push</text>
+          <text x="285" y="441" text-anchor="middle" style="fill:currentColor">Cloud Build</text>
+          <text x="475" y="441" text-anchor="middle" style="fill:currentColor">Cloud Run deploy</text>
+          <text x="665" y="435" text-anchor="middle" style="fill:currentColor">verify</text>
+          <text x="665" y="449" text-anchor="middle" style="fill:var(--muted);font-size:10px">3 live questions</text>
+          <path d="M170,437 H206" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+          <path d="M360,437 H396" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+          <path d="M550,437 H586" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+
+          <rect x="20"  y="478" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="210" y="478" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <rect x="400" y="478" width="150" height="38" rx="5" style="fill:var(--bg);stroke:var(--line)"/>
+          <text x="95"  y="501" text-anchor="middle" style="fill:currentColor">GitHub release</text>
+          <text x="285" y="501" text-anchor="middle" style="fill:currentColor">Zenodo archive</text>
+          <text x="475" y="495" text-anchor="middle" style="fill:currentColor">version DOI</text>
+          <text x="475" y="509" text-anchor="middle" style="fill:var(--muted);font-size:10px">what a reader cites</text>
+          <path d="M170,497 H206" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+          <path d="M360,497 H396" style="stroke:currentColor;fill:none" marker-end="url(#ah)"/>
+        </g>
+
+        <path d="M665,358 V292 H95 V240" marker-end="url(#ah)"
+              style="stroke:var(--accent);fill:none;stroke-dasharray:5 4"/>
+        <text x="240" y="286" text-anchor="middle" style="fill:var(--accent);font-size:10.5px">
+          written back into the same file the tools read</text>
+      </svg>
+      </div>
+      <figcaption><strong>One data set, one computation.</strong> Every answer &mdash; in the chat,
+      in an MCP client, and in the tables on this page &mdash; is derived from the same five JSON
+      files through the same <code>core</code> module, which is why the page and the agent cannot
+      give different numbers. The air-quality pull writes back into that same set rather than
+      alongside it; the deploy verifies itself against the live service; and each release is
+      archived with its own DOI, which is what a reader should cite.</figcaption>
+    </figure>'''
+
 OPTION1_LIVE = """    <div class="card">
       <h3 style="margin:0 0 6px;font-size:1rem">Option 2 &middot; Connect your own assistant</h3>
       <p style="font-size:.9rem;margin:0 0 8px">Paste this URL into your assistant's connector
@@ -375,6 +517,7 @@ footer{border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;padd
   <button role="tab" aria-selected="false" data-tab="evidence">Evidence</button>
   <button role="tab" aria-selected="false" data-tab="air">Air quality</button>
   <button role="tab" aria-selected="false" data-tab="tryit">Try it</button>
+  <button role="tab" aria-selected="false" data-tab="how">How it works</button>
   <button role="tab" aria-selected="false" data-tab="refs">References</button>
   <button role="tab" aria-selected="false" data-tab="use">Ask it questions</button>
 </div></nav>
@@ -535,6 +678,14 @@ pip install -e .</code></pre>
     For the rest &mdash; screening checklists, travel burden, the evidence base, air quality &mdash;
     connect an assistant to the agent: see <a href="#use" id="tryUseLink">how to ask it questions</a>.</p>
   </section>
+
+  <section id="how" hidden>
+    <h2>How it works</h2>
+    <p class="lede">What the agent is made of, and what keeps it current. The same five
+    files and the same computation stand behind every surface, so nothing you read here
+    can drift away from what the agent answers.</p>
+
+__ARCHFIGURE__
 
   <section id="refs" hidden>
     <h2>References</h2>
@@ -1120,7 +1271,8 @@ def main() -> int:
     # link. The surviving cards then start at "Option 2", which is untidy but only reachable in
     # the state where Option 2 itself renders as "not yet available" and explains the gap.
     chat_card = CHAT_CARD.format(chat=HOSTED_CHAT_URL) if HOSTED_CHAT_URL else ""
-    html = (HTML.replace("__CHATCARD__", chat_card)
+    html = (HTML.replace("__ARCHFIGURE__", ARCH_FIGURE)
+                .replace("__CHATCARD__", chat_card)
                 .replace("__OPTION1__", option1)
                 .replace("__OTHERCLIENTS__", other)
                 .replace("__REPO__", REPO)
