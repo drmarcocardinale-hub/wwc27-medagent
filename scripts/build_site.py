@@ -686,6 +686,7 @@ pip install -e .</code></pre>
     can drift away from what the agent answers.</p>
 
 __ARCHFIGURE__
+  </section>
 
   <section id="refs" hidden>
     <h2>References</h2>

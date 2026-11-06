@@ -92,3 +92,54 @@ def test_the_figure_is_self_contained_and_accessible():
         assert banned not in fig, f"the figure should not contain {banned}"
     assert 'role="img"' in fig and 'aria-label=' in fig
     assert "<figcaption>" in fig
+
+
+# --------------------------------------------------------------------------- page structure
+
+def _built_html():
+    return (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+
+
+def _parse_sections(html):
+    """Return (ordered section ids, [(inner, outer) nesting faults], [unclosed ids])."""
+    from html.parser import HTMLParser
+
+    class P(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.open, self.nested, self.ids = [], [], []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "section":
+                sid = dict(attrs).get("id")
+                if self.open:
+                    self.nested.append((sid, self.open[-1]))
+                self.open.append(sid)
+                self.ids.append(sid)
+
+        def handle_endtag(self, tag):
+            if tag == "section" and self.open:
+                self.open.pop()
+
+    p = P()
+    p.feed(html)
+    return p.ids, p.nested, p.open
+
+
+def test_no_tab_section_is_nested_inside_another():
+    """A missing </section> put the References panel inside the hidden "How it works" panel, so
+    the tab rendered empty on the live site. Every section was still in the DOM, which is why a
+    test that counted elements passed while the page was broken - nest, do not count."""
+    ids, nested, unclosed = _parse_sections(_built_html())
+    assert not nested, f"section(s) nested inside another: {nested}"
+    assert not unclosed, f"section(s) never closed: {unclosed}"
+
+
+def test_every_tab_has_a_section_and_every_section_has_a_tab():
+    import re
+
+    html = _built_html()
+    tabs = set(re.findall(r'<button role="tab"[^>]*data-tab="([^"]+)"', html))
+    ids = set(_parse_sections(html)[0])
+    assert tabs == ids, (
+        f"tabs without a panel: {sorted(tabs - ids)}; panels without a tab: {sorted(ids - tabs)}")
