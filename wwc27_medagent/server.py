@@ -232,6 +232,8 @@ def main() -> None:
             mcp.settings.host = host
             mcp.settings.port = port
             mcp.settings.stateless_http = stateless
+            if security is not None:  # same allowlist as --web; omitting it means 421 to all
+                mcp.settings.transport_security = security
             mcp.run(transport="streamable-http")
     else:
         mcp.run()

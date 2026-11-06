@@ -7,12 +7,20 @@ probe passed, because a local probe sends a localhost Host header.
 
 So the rule here: assert against a Host header that is NOT localhost. A test that only ever
 sends 127.0.0.1 reproduces the blind spot rather than closing it.
+
+One structural constraint shapes the rest. Under mcp 1.x, streamable_http_app() binds a single
+StreamableHTTPSessionManager to the server singleton and its run() may be called only once per
+instance, so a second build_app() in the same session raises. (2.x builds a new manager each
+time, which is why an earlier version of this file passed locally and failed the whole 1.x half
+of the CI matrix.) Hence: exactly one real app per module, and anything needing different
+configuration is tested without building a second one.
 """
 from __future__ import annotations
 
 import json
 
 import pytest
+from starlette.applications import Starlette
 from starlette.testclient import TestClient
 
 from wwc27_medagent import web
@@ -24,12 +32,17 @@ INIT = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
                    "clientInfo": {"name": "test", "version": "1"}}}
 
 
-@pytest.fixture
-def client(monkeypatch):
-    monkeypatch.setenv("MCP_STATELESS", "1")
-    monkeypatch.delenv("MCP_ALLOWED_HOSTS", raising=False)
-    with TestClient(web.build_app()) as c:
-        yield c
+@pytest.fixture(scope="module")
+def client():
+    """The one real app for this module; see the note above on why there can only be one."""
+    mp = pytest.MonkeyPatch()
+    mp.setenv("MCP_STATELESS", "1")
+    mp.delenv("MCP_ALLOWED_HOSTS", raising=False)
+    try:
+        with TestClient(web.build_app()) as c:
+            yield c
+    finally:
+        mp.undo()
 
 
 def _mcp(client, host):
@@ -56,6 +69,15 @@ def test_the_chat_surface_answers_a_remote_host(client):
     assert r.json()["version"]
 
 
+def test_the_page_and_mcp_coexist(client):
+    """The mount must not shadow the chat routes, nor the routes swallow /mcp."""
+    assert client.get("/", headers={"Host": REMOTE}).status_code == 200
+    assert _mcp(client, REMOTE).status_code == 200
+    assert json.loads(client.get("/api/meta", headers={"Host": REMOTE}).text)["model"]
+
+
+# --------------------------------------------------------------- configuration, without an app
+
 def test_an_allowlist_is_honoured_when_set(monkeypatch):
     """Anyone running this behind a known hostname should be able to keep the check on."""
     monkeypatch.setenv("MCP_ALLOWED_HOSTS", REMOTE)
@@ -67,16 +89,22 @@ def test_an_allowlist_is_honoured_when_set(monkeypatch):
     assert web.transport_security().enable_dns_rebinding_protection is False
 
 
-def test_an_allowlist_actually_refuses_a_host_outside_it(monkeypatch):
-    monkeypatch.setenv("MCP_STATELESS", "1")
-    monkeypatch.setenv("MCP_ALLOWED_HOSTS", "only-this-host.example")
-    with TestClient(web.build_app()) as c:
-        assert _mcp(c, REMOTE).status_code == 421, "the allowlist is not being applied"
-        assert _mcp(c, "only-this-host.example").status_code == 200
+def test_the_settings_actually_reach_the_mcp_app(monkeypatch):
+    """Configuring the allowlist is worthless if build_app does not pass it on. Checked by
+    capturing the call rather than by building a second app, which 1.x forbids."""
+    from wwc27_medagent import server
 
+    seen = {}
 
-def test_the_page_and_mcp_coexist(client):
-    """The mount must not shadow the chat routes, nor the routes swallow /mcp."""
-    assert client.get("/", headers={"Host": REMOTE}).status_code == 200
-    assert _mcp(client, REMOTE).status_code == 200
-    assert json.loads(client.get("/api/meta", headers={"Host": REMOTE}).text)["model"]
+    def fake_app(**kwargs):
+        seen.update(kwargs)
+        return Starlette(routes=[])
+
+    monkeypatch.setenv("MCP_ALLOWED_HOSTS", REMOTE)
+    monkeypatch.setattr(server.mcp, "streamable_http_app", fake_app)
+    web.build_app()
+
+    got = seen.get("transport_security")
+    assert got is not None, f"transport_security was not passed on; got {sorted(seen)}"
+    assert REMOTE in got.allowed_hosts
+    assert got.enable_dns_rebinding_protection is True

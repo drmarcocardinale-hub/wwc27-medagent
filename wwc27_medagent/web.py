@@ -367,15 +367,18 @@ def build_app():
     security = transport_security()
     try:
         mcp_app = mcp.streamable_http_app(stateless_http=stateless, transport_security=security)
-    except TypeError:                                 # older SDKs take neither, or only one
-        try:
-            mcp_app = mcp.streamable_http_app(stateless_http=stateless)
-        except TypeError:                             # mcp 1.x takes it off .settings instead
-            try:
-                mcp.settings.stateless_http = stateless
-            except Exception:
-                pass
-            mcp_app = mcp.streamable_http_app()
+    except TypeError:
+        # mcp 1.x: streamable_http_app() takes no arguments at all and both of these live on
+        # .settings instead. Falling through to a bare call - as an earlier version did - drops
+        # the host allowlist silently and leaves 1.x deployments answering 421 to every remote
+        # client, which is the exact bug this is meant to fix.
+        for name, value in (("stateless_http", stateless), ("transport_security", security)):
+            if value is not None:
+                try:
+                    setattr(mcp.settings, name, value)
+                except Exception:
+                    pass
+        mcp_app = mcp.streamable_http_app()
 
     routes = [
         Route("/", page),
